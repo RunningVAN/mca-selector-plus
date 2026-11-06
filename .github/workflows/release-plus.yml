@@ -56,7 +56,7 @@ jobs:
           java-package: jdk+fx
 
       - name: build the jars
-        run: ./gradlew --no-daemon build shadowJar
+        run: ./gradlew --no-daemon assemble shadowJar -x test
 
       - name: check the versions inside the fat jar
         run: unzip -p build/libs/*-all.jar META-INF/MANIFEST.MF | grep -E 'Application-Version|Plus-Version'
@@ -86,7 +86,10 @@ jobs:
         shell: bash
         run: |
           set -o pipefail
-          ./gradlew build shadowJar jpackage --stacktrace --warning-mode all 2>&1 | tee "$RUNNER_TEMP/build.log"
+          {
+            ./gradlew assemble shadowJar -x test --stacktrace --warning-mode all
+            ./gradlew jpackage --stacktrace --warning-mode all
+          } 2>&1 | tee "$RUNNER_TEMP/build.log"
 
       - name: initialise the installer resources
         shell: bash
@@ -119,8 +122,11 @@ jobs:
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { throw "iscc not found at $iscc" }
-          & $iscc build\inno\inno.iss /Q
-          if ($LASTEXITCODE -ne 0) { throw "iscc exited with $LASTEXITCODE" }
+          & $iscc build\inno\inno.iss /Q 2>&1 | Tee-Object -FilePath "$env:RUNNER_TEMP/iscc.log"
+          if ($LASTEXITCODE -ne 0) {
+            Get-Content "$env:RUNNER_TEMP/iscc.log" | Write-Host
+            throw "iscc exited with $LASTEXITCODE"
+          }
           Get-ChildItem build\inno\Output
 
       - name: list the output
@@ -137,8 +143,9 @@ jobs:
           git config user.name ci
           {
             echo "job: $GITHUB_JOB run: $GITHUB_RUN_ID"
-            tail -c 30000 "$RUNNER_TEMP/build.log" 2>/dev/null
-            tail -c 8000 build/inno/inno.iss 2>/dev/null
+            tail -c 20000 "$RUNNER_TEMP/build.log" 2>/dev/null
+            echo "===== iscc ====="
+            cat "$RUNNER_TEMP/iscc.log" 2>/dev/null
           } > ".ci-logs/windows.log"
           git add -f .ci-logs
           git commit -q -m "ci log windows" || true
@@ -176,7 +183,7 @@ jobs:
       - name: build the dmg
         run: |
           chmod +x ./gradlew ./installer/init
-          ./gradlew build shadowJar --stacktrace --warning-mode all
+          ./gradlew assemble shadowJar -x test --stacktrace --warning-mode all
           mkdir -p build/licenses
           ./installer/init . build/licenses/LICENSE
           ./gradlew jpackage --stacktrace --warning-mode all
@@ -226,12 +233,12 @@ jobs:
         if: matrix.type == 'deb'
         run: |
           apt-get update -qq
-          apt-get install -qq -y ca-certificates findutils binutils fakeroot debhelper
+          apt-get install -qq -y ca-certificates git findutils binutils fakeroot debhelper
 
       - name: install the packaging tools (rpm)
         if: matrix.type == 'rpm'
         run: |
-          dnf install -y findutils tar gzip binutils which rpm-build
+          dnf install -y git findutils tar gzip binutils which rpm-build
 
       - name: set up jdk 21
         uses: actions/setup-java@v4
@@ -246,7 +253,7 @@ jobs:
           set -o pipefail
           chmod +x ./gradlew ./installer/init
           {
-            ./gradlew build shadowJar --stacktrace --warning-mode all
+            ./gradlew assemble shadowJar -x test --stacktrace --warning-mode all
             mkdir -p build/licenses
             ./installer/init . build/licenses/LICENSE
             ./gradlew jpackage -PmatrixType=${{ matrix.type }} --stacktrace --warning-mode all
