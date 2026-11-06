@@ -1,0 +1,100 @@
+name: sync-upstream
+
+# Keeps the Plus layer on top of the newest MCA Selector core.
+#
+# master is a mirror of Querz/mcaselector and is fast-forwarded, plus is rebased on top of it.
+# A clean rebase is pushed automatically; a conflicting one is reported as an issue so that
+# nothing is ever force-pushed on top of a half-solved conflict.
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: check out the plus branch with full history
+        uses: actions/checkout@v4
+        with:
+          ref: plus
+          fetch-depth: 0
+
+      - name: configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: fetch upstream
+        run: |
+          git remote add upstream https://github.com/Querz/mcaselector.git 2>/dev/null || git remote set-url upstream https://github.com/Querz/mcaselector.git
+          git fetch upstream master --tags --prune
+
+      - name: fast-forward the core branch
+        id: core
+        run: |
+          git checkout master
+          before=$(git rev-parse master)
+          git merge --ff-only upstream/master
+          if [ "$before" = "$(git rev-parse master)" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git push origin master
+          fi
+          echo "version=$(sed -n 's/^version=//p' gradle.properties | head -1)" >> "$GITHUB_OUTPUT"
+
+      - name: rebase the plus layer onto the new core
+        id: rebase
+        run: |
+          git checkout plus
+          if git rebase master; then
+            echo "conflict=false" >> "$GITHUB_OUTPUT"
+            git push --force-with-lease origin plus
+          else
+            git rebase --abort
+            echo "conflict=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: report the result
+        if: always()
+        env:
+          CORE_CHANGED: ${{ steps.core.outputs.changed }}
+          CORE_VERSION: ${{ steps.core.outputs.version }}
+          CONFLICT: ${{ steps.rebase.outputs.conflict }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const coreChanged = process.env.CORE_CHANGED === 'true';
+            const conflict = process.env.CONFLICT === 'true';
+            const coreVersion = process.env.CORE_VERSION || 'unknown';
+            if (conflict) {
+              const existing = await github.rest.issues.listForRepo({
+                owner: context.repo.owner, repo: context.repo.repo, state: 'open', labels: 'upstream-sync'
+              });
+              if (existing.data.length === 0) {
+                await github.rest.issues.create({
+                  owner: context.repo.owner, repo: context.repo.repo,
+                  title: `upstream sync needs a manual rebase (core ${coreVersion})`,
+                  labels: ['upstream-sync'],
+                  body: [
+                    `The scheduled sync could not rebase \`plus\` onto upstream core **${coreVersion}**.`,
+                    '',
+                    'Nothing was pushed. Run `scripts/sync-upstream.sh` locally, resolve the conflicts and push the result, then close this issue.'
+                  ].join('\n')
+                });
+              }
+            } else if (coreChanged) {
+              core.summary.addRaw(`Rebased \`plus\` onto upstream core **${coreVersion}** and pushed it.`);
+            } else {
+              core.summary.addRaw('Upstream had no new commits, nothing to do.');
+            }

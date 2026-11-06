@@ -39,6 +39,19 @@ public abstract class ProgressTask extends Task<Void> implements Progress {
 		this.max = max;
 	}
 
+	/**
+	 * Returns how many units the work has reported so far.
+	 *
+	 * <p>{@link #getProgress()} is the JavaFX accessor and throws
+	 * "Task must only be used from the FX Application Thread" when it is called from the worker
+	 * thread that runs the task, so code that watches the run from inside the task body has to read
+	 * this counter instead. It is updated by every {@code incrementProgress} call, i.e. by the
+	 * region jobs themselves, and is safe to read from any thread.</p>
+	 */
+	public int reportedUnits() {
+		return current.get();
+	}
+
 	@Override
 	public void incrementProgress(String info) {
 		updateProgress(info, current.incrementAndGet(), max);
@@ -56,6 +69,18 @@ public abstract class ProgressTask extends Task<Void> implements Progress {
 	@Override
 	public void done(String info) {
 		updateProgress(info, 1, 1);
+	}
+
+	/**
+	 * Reports the task as finished no matter how many units it had.
+	 *
+	 * <p>{@link #done(String)} reaches the two argument {@code updateProgress}, which compares
+	 * against the task maximum, so a run that set a maximum of n and finished early (or finished a
+	 * blocking pass without reporting any unit) never reached it and the dialog stayed open. This
+	 * reports a maximum of one that is already reached.</p>
+	 */
+	public void finish(String info) {
+		updateProgress(info, 1.0, 1);
 	}
 
 	@Override

@@ -44,6 +44,12 @@ public final class CacheHandler {
 
 	private static DB db;
 
+	// set to true when no usable cache db could be opened, so that cache reads and writes
+	// degrade to no-ops instead of blocking forever on an uninitialized cache
+	private static volatile boolean disabled = false;
+
+	private static final long INIT_TIMEOUT_NANOS = 5_000_000_000L;
+
 	public static synchronized void switchTo(String dbPath) throws IOException {
 		removeCloseShutdownHook();
 		close();
@@ -55,17 +61,57 @@ public final class CacheHandler {
 
 		try {
 			db = Iq80DBFactory.factory.open(cache, options);
+			CacheHandler.dbPath = dbPath;
+			disabled = false;
 		} catch (IOException e) {
-			Iq80DBFactory.factory.destroy(cache, new Options());
-			db = Iq80DBFactory.factory.open(cache, options);
+			// the cache db is most likely locked by another instance of McaSelector using the same
+			// world. never destroy the existing db here, that would delete data another instance is
+			// still using. fall back to an instance specific cache directory instead.
+			LOGGER.warn("failed to open cache db at {}, another instance may be using it, " +
+				"falling back to an instance specific cache directory", cache.getAbsolutePath(), e);
+			File fallback = new File(cache.getParentFile(), "cache-" + ProcessHandle.current().pid());
+			try {
+				if (!fallback.exists() && !fallback.mkdirs()) {
+					throw new IOException("failed to create fallback cache directory " + fallback.getAbsolutePath());
+				}
+				db = Iq80DBFactory.factory.open(fallback, options);
+				CacheHandler.dbPath = fallback.getPath();
+				disabled = false;
+				LOGGER.warn("using fallback cache db at {}", fallback.getAbsolutePath());
+			} catch (IOException e2) {
+				// run without cache rather than blocking all rendering threads on an
+				// uninitialized cache db
+				LOGGER.error("failed to open fallback cache db, continuing without cache", e2);
+				db = null;
+				CacheHandler.dbPath = null;
+				disabled = true;
+			}
 		}
-		CacheHandler.dbPath = dbPath;
 		addCloseShutdownHook();
 	}
 
-	public static long getFileTime(Point2i region) throws DBException {
+	// waits until the cache db has been initialized, returns false if the cache is unusable
+	private static boolean awaitInit() {
+		if (isInitialized()) {
+			return true;
+		}
+		long deadline = System.nanoTime() + INIT_TIMEOUT_NANOS;
 		while (!isInitialized()) {
+			if (disabled) {
+				return false;
+			}
+			if (System.nanoTime() - deadline > 0) {
+				LOGGER.warn("cache db was not initialized in time, skipping cache access");
+				return false;
+			}
 			Thread.onSpinWait();
+		}
+		return true;
+	}
+
+	public static long getFileTime(Point2i region) throws DBException {
+		if (!awaitInit()) {
+			return -1;
 		}
 		byte[] key = key(region.getX(), region.getZ(), fileTimeUUID);
 		byte[] value = db.get(key);
@@ -76,8 +122,8 @@ public final class CacheHandler {
 	}
 
 	public static void setFileTime(Point2i region, long time) throws DBException {
-		while (!isInitialized()) {
-			Thread.onSpinWait();
+		if (!awaitInit()) {
+			return;
 		}
 		byte[] key = key(region.getX(), region.getZ(), fileTimeUUID);
 		byte[] value = longToBytes(time);
@@ -85,6 +131,9 @@ public final class CacheHandler {
 	}
 
 	public static int[] getData(Overlay parser, Point2i region) throws DBException, IOException {
+		if (!awaitInit()) {
+			return null;
+		}
 		UUID id = UUID.nameUUIDFromBytes((parser.name() + parser.getMultiValuesID()).getBytes());
 		byte[] key = key(region.getX(), region.getZ(), id);
 		byte[] rawValue = db.get(key);
@@ -95,6 +144,9 @@ public final class CacheHandler {
 	}
 
 	public static void setData(Overlay parser, Point2i region, int[] data) throws DBException {
+		if (!awaitInit()) {
+			return;
+		}
 		UUID id = UUID.nameUUIDFromBytes((parser.name() + parser.getMultiValuesID()).getBytes());
 		byte[] key = key(region.getX(), region.getZ(), id);
 		byte[] rawValue = cacheValue(data);
@@ -102,8 +154,8 @@ public final class CacheHandler {
 	}
 
 	public static ChunkSet getChunks(Point2i region) throws DBException {
-		while (!isInitialized()) {
-			Thread.onSpinWait();
+		if (!awaitInit()) {
+			return null;
 		}
 		byte[] key = key(region.getX(), region.getZ(), chunksUUID);
 		byte[] value = db.get(key);
@@ -114,14 +166,17 @@ public final class CacheHandler {
 	}
 
 	public static void setChunks(Point2i region, ChunkSet chunks) throws DBException {
+		if (!awaitInit()) {
+			return;
+		}
 		byte[] key = key(region.getX(), region.getZ(), chunksUUID);
 		byte[] rawValue = chunks.toBytes();
 		db.put(key, rawValue);
 	}
 
 	public static BufferedImage getImage(Point2i region) throws DBException {
-		while (!isInitialized()) {
-			Thread.onSpinWait();
+		if (!awaitInit()) {
+			return null;
 		}
 		byte[] key = key(region.getX(), region.getZ(), imageUUID);
 		byte[] rawValue = db.get(key);
@@ -136,6 +191,9 @@ public final class CacheHandler {
 	}
 
 	public static void setImage(Point2i region, BufferedImage image) throws DBException {
+		if (!awaitInit()) {
+			return;
+		}
 		byte[] key = key(region.getX(), region.getZ(), imageUUID);
 		try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
 			ImageIO.write(image, "png", out);
@@ -147,6 +205,9 @@ public final class CacheHandler {
 	}
 
 	public static void setStructureData(Point2i region, Long2ObjectOpenHashMap<String[]> structures) throws DBException, IOException {
+		if (!awaitInit()) {
+			return;
+		}
 		byte[] key = key(region.getX(), region.getZ(), structuresUUID);
 		ByteArrayOutputStream bos;
 		try (DataOutputStream dos = new DataOutputStream(bos = new ByteArrayOutputStream())) {
@@ -165,8 +226,8 @@ public final class CacheHandler {
 	}
 
 	public static Long2ObjectOpenHashMap<String[]> getStructureData(Point2i region) throws DBException, IOException {
-		while (!isInitialized()) {
-			Thread.onSpinWait();
+		if (!awaitInit()) {
+			return null;
 		}
 		byte[] key = key(region.getX(), region.getZ(), structuresUUID);
 		byte[] rawValue = db.get(key);
@@ -190,6 +251,9 @@ public final class CacheHandler {
 	}
 
 	public static void deleteData(Overlay parser, Point2i region) throws DBException {
+		if (!awaitInit()) {
+			return;
+		}
 		UUID id = UUID.nameUUIDFromBytes((parser.name() + parser.getMultiValuesID()).getBytes());
 		byte[] key = key(region.getX(), region.getZ(), id);
 		db.delete(key);

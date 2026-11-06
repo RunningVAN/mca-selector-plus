@@ -92,6 +92,8 @@ public class OptionBar extends BorderPane {
 	private final MenuItem filterChunks = UIFactory.menuItem(Translation.MENU_TOOLS_FILTER_CHUNKS);
 	private final MenuItem changeFields = UIFactory.menuItem(Translation.MENU_TOOLS_CHANGE_FIELDS);
 	private final MenuItem editNBT = UIFactory.menuItem(Translation.MENU_TOOLS_EDIT_NBT);
+	private final MenuItem nbtStudio = UIFactory.menuItem(Translation.MENU_TOOLS_NBT_STUDIO);
+	private final MenuItem nbtFiles = UIFactory.menuItem(Translation.MENU_TOOLS_NBT_FILES);
 	private final MenuItem swapChunks = UIFactory.menuItem(Translation.MENU_TOOLS_SWAP_CHUNKS);
 	private final MenuItem editOverlays = UIFactory.menuItem(Translation.MENU_TOOLS_EDIT_OVERLAYS);
 	private final MenuItem nextOverlay = UIFactory.menuItem(Translation.MENU_TOOLS_NEXT_OVERLAY);
@@ -131,7 +133,7 @@ public class OptionBar extends BorderPane {
 				exportImage, UIFactory.separator(),
 				clearSelectionCache);
 		tools.getItems().addAll(
-				importChunks, filterChunks, changeFields, editNBT, UIFactory.separator(),
+				importChunks, filterChunks, changeFields, editNBT, nbtStudio, nbtFiles, UIFactory.separator(),
 				swapChunks, UIFactory.separator(),
 				editOverlays, nextOverlay, nextOverlayType, sumSelection);
 		about.setOnMouseClicked(e -> DialogHelper.showAboutDialog(primaryStage));
@@ -226,6 +228,8 @@ public class OptionBar extends BorderPane {
 		filterChunks.setOnAction(e -> DialogHelper.filterChunks(tileMap, primaryStage));
 		changeFields.setOnAction(e -> DialogHelper.changeFields(tileMap, primaryStage));
 		editNBT.setOnAction(e -> DialogHelper.editNBT(tileMap, primaryStage));
+		nbtStudio.setOnAction(e -> DialogHelper.openNbtStudio(tileMap, primaryStage));
+		nbtFiles.setOnAction(e -> DialogHelper.openNbtFileBrowser(primaryStage));
 		swapChunks.setOnAction(e -> DialogHelper.swapChunks(tileMap, primaryStage));
 		editOverlays.setOnAction(e -> DialogHelper.editOverlays(tileMap, primaryStage));
 		nextOverlay.setOnAction(e -> tileMap.nextOverlay());
@@ -261,6 +265,8 @@ public class OptionBar extends BorderPane {
 		filterChunks.setAccelerator(new KeyCodeCombination(KeyCode.F, KeyCodeCombination.SHORTCUT_DOWN));
 		changeFields.setAccelerator(new KeyCodeCombination(KeyCode.N, KeyCodeCombination.SHORTCUT_DOWN));
 		editNBT.setAccelerator(new KeyCodeCombination(KeyCode.B, KeyCodeCombination.SHORTCUT_DOWN));
+		nbtStudio.setAccelerator(new KeyCodeCombination(KeyCode.H, KeyCodeCombination.SHORTCUT_DOWN, KeyCodeCombination.SHIFT_DOWN));
+		nbtFiles.setAccelerator(new KeyCodeCombination(KeyCode.B, KeyCodeCombination.SHORTCUT_DOWN, KeyCodeCombination.SHIFT_DOWN));
 		swapChunks.setAccelerator(new KeyCodeCombination(KeyCode.M, KeyCodeCombination.SHORTCUT_DOWN));
 		editOverlays.setAccelerator(new KeyCodeCombination(KeyCode.H, KeyCodeCombination.SHORTCUT_DOWN));
 		nextOverlay.setAccelerator(new KeyCodeCombination(KeyCode.O));
@@ -326,6 +332,7 @@ public class OptionBar extends BorderPane {
 		clearAllCache.setDisable(!enabled);
 		saveScreenshot.setDisable(!enabled);
 		filterChunks.setDisable(!enabled);
+		nbtFiles.setDisable(!enabled);
 		changeFields.setDisable(!enabled);
 		importChunks.setDisable(!enabled);
 		invert.setDisable(!enabled);

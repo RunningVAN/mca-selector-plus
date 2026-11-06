@@ -40,8 +40,13 @@ public class AboutDialog extends Alert {
 		versionLabel.setAlignment(Pos.CENTER_LEFT);
 		String applicationVersion = "0";
 		try {
-			applicationVersion = FileHelper.getManifestAttributes().getValue("Application-Version");
-			versionLabel.getChildren().add(new Label(applicationVersion));
+			var attributes = FileHelper.getManifestAttributes();
+			applicationVersion = attributes.getValue("Application-Version");
+			String plusVersion = attributes.getValue("Plus-Version");
+			// the same scheme as the window title: upstream core version first, then the Plus layer
+			versionLabel.getChildren().add(new Label(plusVersion == null || plusVersion.isEmpty()
+					? applicationVersion
+					: applicationVersion + " - Plus " + plusVersion));
 		} catch (IOException ex) {
 			versionLabel.getChildren().add(UIFactory.label(Translation.DIALOG_ABOUT_VERSION_UNKNOWN));
 		}
@@ -69,7 +74,7 @@ public class AboutDialog extends Alert {
 		ImageView imgView = new ImageView(githubMark);
 		imgView.setScaleX(0.5);
 		imgView.setScaleY(0.5);
-		Hyperlink source = UIFactory.hyperlink("GitHub", "https://github.com/Querz/mcaselector", imgView);
+		Hyperlink source = UIFactory.hyperlink("GitHub", "https://github.com/RunningVAN/mca-selector-plus", imgView);
 		grid.add(source, 1, 3);
 
 		Label disclaimer = new Label("NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.");

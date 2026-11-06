@@ -1,0 +1,49 @@
+.nbt-studio-dialog-pane {
+    -fx-pref-width: 600;
+}
+
+/* the shared rule above pins every pane of the studio to 600; the file browser needs the room for
+   four columns and the filter row, so it overrides the width after that rule */
+.nbt-file-browser-dialog-pane {
+    -fx-pref-width: 840;
+    -fx-pref-height: 600;
+}
+
+.nbt-studio-dialog-pane .label {
+    -fx-text-fill: -color-text-light;
+}
+
+.nbt-studio-dialog-pane .text-field {
+    -fx-text-fill: -color-text-light;
+    -fx-background-color: -color-text-field-background;
+    -fx-border-color: -color-text-field-border;
+    -fx-border-width: 1;
+    -fx-border-radius: 2;
+    -fx-background-radius: 2;
+    -fx-pref-height: 26;
+}
+
+.nbt-studio-dialog-pane .text-field:focused {
+    -fx-effect: dropshadow(gaussian, -color-text-field-focused-shadow, 4, 0, 0, 0);
+}
+
+.nbt-studio-dialog-pane .text-field.nbt-studio-invalid {
+    -fx-border-color: #ff6b6b;
+}
+
+.nbt-studio-section-title {
+    -fx-text-fill: -color-text-light;
+    -fx-font-weight: bold;
+    -fx-padding: 4 0 2 0;
+}
+
+/* the pane selector is needed to win over .nbt-studio-dialog-pane .label */
+.nbt-studio-dialog-pane .nbt-studio-summary {
+    -fx-text-fill: -color-text-dark;
+    -fx-padding: 0 0 0 1;
+}
+
+.nbt-studio-dialog-pane .nbt-studio-error {
+    -fx-text-fill: #ff6b6b;
+    -fx-padding: 0 0 0 1;
+}

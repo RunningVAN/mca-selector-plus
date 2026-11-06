@@ -13,6 +13,11 @@ import javafx.scene.input.*;
 import javafx.scene.layout.*;
 import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
+import net.querz.mcaselector.nbtstudio.NbtPattern;
+import net.querz.mcaselector.nbtstudio.NbtQuery;
+import net.querz.mcaselector.nbtstudio.NbtReplaceResult;
+import net.querz.mcaselector.nbtstudio.NbtReplacer;
+import net.querz.mcaselector.nbtstudio.NbtSearcher;
 import net.querz.mcaselector.util.validation.OSHelper;
 import net.querz.nbt.*;
 import java.io.*;
@@ -44,6 +49,9 @@ public class NBTTreeView extends TreeView<NBTTreeView.NamedTag> {
 	public void load(CompoundTag root) {
 		super.setRoot(toTreeItem(0, null, root, null));
 		getRoot().setExpanded(true);
+		// a new tree invalidates every match of the previous one
+		findMatches.clear();
+		findIndex = -1;
 	}
 
 	public void setArrayEditor(Function<Object, Optional<EditArrayResult>> arrayEditor) {
@@ -52,6 +60,313 @@ public class NBTTreeView extends TreeView<NBTTreeView.NamedTag> {
 
 	public void setOnSelectionChanged(Consumer<Boolean> onSelectionChanged) {
 		getSelectionModel().selectedItemProperty().addListener((i, o, n) -> onSelectionChanged.accept(n == null));
+	}
+
+	// --- find and replace inside the tree ----------------------------------------------
+	// this mirrors the find and replace semantics of a text editor, but on NBT tags: the match
+	// list is rebuilt whenever the query changes, navigation walks through it and replaces are
+	// applied to the actual tag instances, so the surrounding chunk data is modified in place.
+
+	private final List<NBTTreeItem> findMatches = new ArrayList<>();
+	private int findIndex = -1;
+
+	/**
+	 * Rebuilds the match list for a pattern.
+	 *
+	 * @param matchNames  whether tag names are matched
+	 * @param matchValues whether tag values are matched
+	 * @return the number of matching tags
+	 */
+	public int collectMatches(NbtPattern pattern, boolean matchNames, boolean matchValues) {
+		findMatches.clear();
+		findIndex = -1;
+		if (getRoot() == null || pattern == null || !pattern.isValid()) {
+			return 0;
+		}
+		collectMatches((NBTTreeItem) getRoot(), pattern, matchNames, matchValues);
+		return findMatches.size();
+	}
+
+	private void collectMatches(NBTTreeItem item, NbtPattern pattern, boolean matchNames, boolean matchValues) {
+		NamedTag tag = item.getValue();
+		// the root tag has no name and no printable value, so it can never match
+		if (tag.parent != null && (matchNames && tag.name != null && pattern.matches(tag.name)
+				|| matchValues && tag.valueToString() != null && pattern.matches(tag.valueToString()))) {
+			findMatches.add(item);
+		}
+		for (TreeItem<NamedTag> child : item.getChildren()) {
+			collectMatches((NBTTreeItem) child, pattern, matchNames, matchValues);
+		}
+	}
+
+	public int getMatchCount() {
+		return findMatches.size();
+	}
+
+	/**
+	 * Rebuilds the match list for a full NBT Studio query, including its path restriction.
+	 *
+	 * <p>The very same {@link NbtSearcher} is used that selects the chunks in the map, so the tree
+	 * shows exactly the hits the map search found in this chunk instead of a second, differently
+	 * behaving search. The reported tags are mapped back to their tree items by identity, because
+	 * the tree holds the tag instances of the loaded chunk.</p>
+	 *
+	 * @return the number of matching tags
+	 */
+	public int collectMatches(NbtQuery query) {
+		findMatches.clear();
+		findIndex = -1;
+		if (getRoot() == null || query == null || !query.isValid()) {
+			return 0;
+		}
+		NBTTreeItem rootItem = (NBTTreeItem) getRoot();
+		Tag rootTag = rootItem.getValue().getRef();
+		if (rootTag == null) {
+			return 0;
+		}
+		Map<Tag, NBTTreeItem> byTag = new IdentityHashMap<>();
+		indexByTag(rootItem, byTag);
+		NbtSearcher.traverse(rootTag, query, (tag, parent, key, index, path) -> {
+			NBTTreeItem item = byTag.get(tag);
+			// the root of the tree has no name and no printable value, so it can never be a hit
+			if (item != null && item.getValue().parent != null) {
+				findMatches.add(item);
+			}
+		});
+		return findMatches.size();
+	}
+
+	private void indexByTag(NBTTreeItem item, Map<Tag, NBTTreeItem> index) {
+		Tag ref = item.getValue().getRef();
+		if (ref != null) {
+			index.put(ref, item);
+		}
+		for (TreeItem<NamedTag> child : item.getChildren()) {
+			indexByTag((NBTTreeItem) child, index);
+		}
+	}
+
+	/**
+	 * @return the 0 based index of the currently selected match, -1 if nothing was selected yet
+	 */
+	public int getMatchIndex() {
+		return findIndex;
+	}
+
+	/**
+	 * @return the human readable path of a match, e.g. {@code sections[0].palette[3]}
+	 */
+	public String getMatchPath(int index) {
+		if (index < 0 || index >= findMatches.size()) {
+			return "";
+		}
+		Deque<String> parts = new ArrayDeque<>();
+		TreeItem<NamedTag> current = findMatches.get(index);
+		while (current != null && current.getParent() != null) {
+			NamedTag tag = current.getValue();
+			parts.addFirst(tag.name == null ? "[" + tag.index + "]" : tag.name);
+			current = current.getParent();
+		}
+		return String.join(".", parts).replace(".[", "[");
+	}
+
+	public boolean selectFirstMatch() {
+		if (findMatches.isEmpty()) {
+			return false;
+		}
+		findIndex = 0;
+		return selectMatch(findMatches.get(0));
+	}
+
+	public boolean selectNextMatch() {
+		if (findMatches.isEmpty()) {
+			return false;
+		}
+		findIndex = (findIndex + 1) % findMatches.size();
+		return selectMatch(findMatches.get(findIndex));
+	}
+
+	public boolean selectPreviousMatch() {
+		if (findMatches.isEmpty()) {
+			return false;
+		}
+		findIndex = (findIndex - 1 + findMatches.size()) % findMatches.size();
+		return selectMatch(findMatches.get(findIndex));
+	}
+
+	/**
+	 * Expands every parent of every match, so all hits become visible at once.
+	 */
+	public void expandMatches() {
+		for (NBTTreeItem item : findMatches) {
+			expandAncestors(item);
+		}
+	}
+
+	private boolean selectMatch(NBTTreeItem item) {
+		expandAncestors(item);
+		// rows are only valid after a layout pass, otherwise scrollTo uses a stale row count
+		layout();
+		getSelectionModel().select(item);
+		int row = getRow(item);
+		if (row >= 0) {
+			scrollTo(row);
+		}
+		return true;
+	}
+
+	private void expandAncestors(TreeItem<NamedTag> item) {
+		TreeItem<NamedTag> parent = item.getParent();
+		while (parent != null) {
+			parent.setExpanded(true);
+			parent = parent.getParent();
+		}
+	}
+
+	/**
+	 * Replaces the match the cursor currently points at. If no match list exists yet, it is built
+	 * first and the first match is used.
+	 *
+	 * @return whether a tag was actually changed
+	 */
+	public boolean replaceCurrentMatch(NbtPattern pattern, String replacement, boolean matchNames, boolean matchValues) {
+		if (findIndex < 0 || findIndex >= findMatches.size()) {
+			if (collectMatches(pattern, matchNames, matchValues) == 0) {
+				return false;
+			}
+			findIndex = 0;
+		}
+		boolean changed = applyReplace(findMatches.get(findIndex), pattern, replacement, matchNames, matchValues);
+		if (changed) {
+			refresh();
+		}
+		return changed;
+	}
+
+	/**
+	 * Replaces every match in the tree.
+	 *
+	 * @return the number of changed tags
+	 */
+	public int replaceAllMatches(NbtPattern pattern, String replacement, boolean matchNames, boolean matchValues) {
+		if (getRoot() == null || pattern == null || !pattern.isValid()) {
+			return 0;
+		}
+		// rebuild from scratch: appending to the list of a previous run would put the same tag in
+		// it twice, and replacing a tag that was already replaced can match again ("stone" is
+		// still contained in "stone_bricks"), which would rewrite it a second time
+		collectMatches(pattern, matchNames, matchValues);
+		List<NBTTreeItem> targets = new ArrayList<>(findMatches);
+		findMatches.clear();
+		findIndex = -1;
+		int changed = 0;
+		for (NBTTreeItem item : targets) {
+			if (applyReplace(item, pattern, replacement, matchNames, matchValues)) {
+				changed++;
+			}
+		}
+		if (changed > 0) {
+			refresh();
+		}
+		return changed;
+	}
+
+	private boolean applyReplace(NBTTreeItem item, NbtPattern pattern, String replacement,
+			boolean matchNames, boolean matchValues) {
+		NamedTag tag = item.getValue();
+		boolean changed = false;
+		if (matchValues) {
+			String current = tag.valueToString();
+			if (current != null && pattern.matches(current)) {
+				String next = pattern.replaceAll(current, replacement);
+				// a numeric tag rejects a non numeric replacement, in that case nothing is changed
+				if (!current.equals(next) && tag.updateValue(next)) {
+					changed = true;
+				}
+			}
+		}
+		if (matchNames && tag.name != null && pattern.matches(tag.name)) {
+			String next = pattern.replaceAll(tag.name, replacement);
+			if (!tag.name.equals(next) && tag.rename(next)) {
+				changed = true;
+			}
+		}
+		return changed;
+	}
+
+	private boolean applyReplace(NBTTreeItem item, NbtPattern namePattern, NbtPattern valuePattern, String replacement,
+			boolean matchNames, boolean matchValues) {
+		NamedTag tag = item.getValue();
+		boolean changed = false;
+		if (matchValues) {
+			String current = tag.valueToString();
+			if (current != null) {
+				// a null pattern comes from a path only query, then the whole value is replaced
+				String next = valuePattern == null ? replacement
+						: valuePattern.matches(current) ? valuePattern.replaceAll(current, replacement) : null;
+				// a numeric tag rejects a non numeric replacement, in that case nothing is changed
+				if (next != null && !current.equals(next) && tag.updateValue(next)) {
+					changed = true;
+				}
+			}
+		}
+		if (matchNames && tag.name != null) {
+			String next = namePattern == null ? replacement
+					: namePattern.matches(tag.name) ? namePattern.replaceAll(tag.name, replacement) : null;
+			if (next != null && !tag.name.equals(next) && tag.rename(next)) {
+				changed = true;
+			}
+		}
+		return changed;
+	}
+
+	/**
+	 * Replaces the currently selected match of a query.
+	 *
+	 * @return whether anything was changed
+	 */
+	public boolean replaceCurrentMatch(NbtQuery query, String replacement, boolean matchNames, boolean matchValues) {
+		if (getRoot() == null || query == null || !query.isValid()) {
+			return false;
+		}
+		if (findIndex < 0 || findIndex >= findMatches.size()) {
+			if (collectMatches(query) == 0) {
+				return false;
+			}
+			findIndex = 0;
+		}
+		NBTTreeItem item = findMatches.get(findIndex);
+		boolean changed = applyReplace(item, query.getNamePattern(), query.getValuePattern(), replacement,
+				matchNames, matchValues);
+		if (changed) {
+			refresh();
+		}
+		return changed;
+	}
+
+	/**
+	 * Replaces every match of a query in the tree.
+	 *
+	 * <p>The replacement is done by the same {@link NbtReplacer} that rewrites whole region files, so
+	 * the path restriction and the type rules behave exactly like "replace all" in the NBT Studio
+	 * dialog. The tree is rebuilt afterwards, because tags may have been renamed.</p>
+	 *
+	 * @return the number of changed tags
+	 */
+	public int replaceMatches(NbtQuery query, String replacement, boolean matchNames, boolean matchValues) {
+		if (getRoot() == null || query == null || !query.isValid()) {
+			return 0;
+		}
+		Tag root = ((NBTTreeItem) getRoot()).getValue().getRef();
+		if (root == null) {
+			return 0;
+		}
+		NbtReplaceResult result = NbtReplacer.replace(root, query, matchNames, matchValues, replacement);
+		int replaced = result.getReplaced();
+		if (replaced > 0 && root instanceof CompoundTag compound) {
+			load(compound);
+		}
+		return replaced;
 	}
 
 	public void deleteSelectedItem() {
@@ -252,6 +567,35 @@ public class NBTTreeView extends TreeView<NBTTreeView.NamedTag> {
 
 		public Tag getRef() {
 			return ref;
+		}
+
+		public String getName() {
+			return name;
+		}
+
+		/**
+		 * Renames the key this tag is stored under in its parent compound tag. Renaming is only
+		 * possible for children of a compound tag: list elements and the root have no key. If the
+		 * new name is already taken, a numeric suffix is appended instead of overwriting a tag.
+		 *
+		 * @return whether the tag was renamed
+		 */
+		public boolean rename(String newName) {
+			if (newName == null || newName.isEmpty() || parent == null || parent.getType() != COMPOUND) {
+				return false;
+			}
+			if (newName.equals(name)) {
+				return false;
+			}
+			CompoundTag compound = (CompoundTag) parent;
+			if (compound.containsKey(newName) && compound.get(newName) != ref) {
+				nextPossibleName(compound, newName);
+				newName = name;
+			}
+			compound.remove(name);
+			compound.put(newName, ref);
+			name = newName;
+			return true;
 		}
 
 		public boolean updateValue(String raw) {

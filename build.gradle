@@ -16,11 +16,14 @@ group = 'net.querz'
 compileJava.options.encoding = 'UTF-8'
 application.mainClass = 'net.querz.mcaselector.Main'
 java.sourceCompatibility = JavaVersion.VERSION_21
-var copyright = project.findProperty('application.copyright').toString()
-var applicationName = project.findProperty('application.name').toString()
+// the plus.* keys live in the same file but are owned by this fork, the upstream keys stay untouched
+var prop = { String key, String fallback -> project.findProperty(key)?.toString() ?: project.findProperty(fallback).toString() }
+var copyright = prop('plus.copyright', 'application.copyright')
+var applicationName = prop('plus.application.name', 'application.name')
 var matrixType = project.findProperty("matrixType").toString()
 var projectName = project.name
 var projectVersion = project.version
+var plusVersion = project.findProperty('plus.version').toString()
 
 javafx {
 	version = "$java.sourceCompatibility"
@@ -61,6 +64,9 @@ dependencies {
 	testImplementation('org.reflections:reflections:0.10.2')
 	testImplementation('commons-io:commons-io:2.18.0')
 	testRuntimeOnly('org.junit.platform:junit-platform-launcher')
+	// the launcher API is implemented by FxTestLauncherSessionListener, which keeps the JavaFX
+	// toolkit alive for the whole run instead of letting the first window-closing test shut it down
+	testImplementation('org.junit.platform:junit-platform-launcher')
 }
 
 compileJava {
@@ -90,10 +96,11 @@ tasks.register('generator', JavaExec) {
 
 jar {
 	dependsOn minifyCss
-	archiveFileName = "${projectName}-${projectVersion}.jar"
+	archiveFileName = "${projectName}-${projectVersion}-plus-${plusVersion}.jar"
 	manifest.attributes (
 		'Main-Class': application.mainClass,
 		'Application-Version': projectVersion,
+		'Plus-Version': plusVersion,
 		'Copyright': copyright,
 		'Class-Path': configurations.shadow.files.stream()
 				.filter($it -> !$it.name.startsWith('javafx')).collect{"lib/$it.name"}.join(' ')
@@ -103,6 +110,7 @@ jar {
 }
 
 shadowJar {
+	archiveFileName = "${projectName}-${projectVersion}-plus-${plusVersion}-all.jar"
 	minimize {
 		exclude(dependency('org.apache.logging.log4j:log4j-core:.*'))
 		exclude(dependency('org.apache.groovy:groovy-jsr223:.*'))
@@ -115,6 +123,7 @@ shadowJar {
 	manifest.attributes (
 		'Main-Class': application.mainClass,
 		'Application-Version': projectVersion,
+		'Plus-Version': plusVersion,
 		'Copyright': copyright
 	)
 	from 'LICENSE'
