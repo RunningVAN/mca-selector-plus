@@ -44,6 +44,7 @@ jobs:
   jars:
     needs: meta
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -53,9 +54,6 @@ jobs:
           distribution: zulu
           java-version: '21'
           java-package: jdk+fx
-
-      - name: set up gradle
-        uses: gradle/actions/setup-gradle@v4
 
       - name: build the jars
         run: ./gradlew --no-daemon build shadowJar
@@ -72,6 +70,7 @@ jobs:
   windows:
     needs: meta
     runs-on: windows-latest
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
 
@@ -85,7 +84,9 @@ jobs:
 
       - name: build the jpackage image
         shell: bash
-        run: ./gradlew build shadowJar jpackage --stacktrace --warning-mode all
+        run: |
+          set -o pipefail
+          ./gradlew build shadowJar jpackage --stacktrace --warning-mode all 2>&1 | tee "$RUNNER_TEMP/build.log"
 
       - name: initialise the installer resources
         shell: bash
@@ -114,13 +115,34 @@ jobs:
           }
 
       - name: build the installer
-        shell: cmd
+        shell: pwsh
         run: |
-          "%programfiles(x86)%/Inno Setup 6/iscc.exe" build/inno/inno.iss /q
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "iscc not found at $iscc" }
+          & $iscc build\inno\inno.iss /Q
+          if ($LASTEXITCODE -ne 0) { throw "iscc exited with $LASTEXITCODE" }
+          Get-ChildItem build\inno\Output
 
       - name: list the output
         shell: bash
         run: ls -l build/inno/Output/
+
+      - name: ship the build log on failure
+        if: failure()
+        shell: bash
+        run: |
+          set +e
+          mkdir -p .ci-logs
+          git config user.email ci@local
+          git config user.name ci
+          {
+            echo "job: $GITHUB_JOB run: $GITHUB_RUN_ID"
+            tail -c 30000 "$RUNNER_TEMP/build.log" 2>/dev/null
+            tail -c 8000 build/inno/inno.iss 2>/dev/null
+          } > ".ci-logs/windows.log"
+          git add -f .ci-logs
+          git commit -q -m "ci log windows" || true
+          git push -q -f origin HEAD:refs/heads/ci-log-windows || true
 
       - uses: actions/upload-artifact@v4
         with:
@@ -131,6 +153,7 @@ jobs:
   macos:
     needs: meta
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
@@ -175,6 +198,7 @@ jobs:
     needs: meta
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.image }}
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -219,13 +243,29 @@ jobs:
 
       - name: build the installer
         run: |
+          set -o pipefail
           chmod +x ./gradlew ./installer/init
-          ./gradlew build shadowJar --stacktrace --warning-mode all
-          mkdir -p build/licenses
-          ./installer/init . build/licenses/LICENSE
-          ./gradlew jpackage -PmatrixType=${{ matrix.type }} --stacktrace --warning-mode all
-          mv build/jpackage/*.${{ matrix.type }} "${{ needs.meta.outputs.base }}-${{ matrix.arch }}.${{ matrix.type }}"
-          ls -l build/jpackage/
+          {
+            ./gradlew build shadowJar --stacktrace --warning-mode all
+            mkdir -p build/licenses
+            ./installer/init . build/licenses/LICENSE
+            ./gradlew jpackage -PmatrixType=${{ matrix.type }} --stacktrace --warning-mode all
+            mv build/jpackage/*.${{ matrix.type }} "${{ needs.meta.outputs.base }}-${{ matrix.arch }}.${{ matrix.type }}"
+            ls -l build/jpackage/
+          } 2>&1 | tee /tmp/build.log
+
+      - name: ship the build log on failure
+        if: failure()
+        run: |
+          set +e
+          mkdir -p .ci-logs
+          git config --global --add safe.directory "*"
+          git config user.email ci@local
+          git config user.name ci
+          { echo "job: $GITHUB_JOB ${{ matrix.type }} ${{ matrix.arch }}"; tail -c 30000 /tmp/build.log 2>/dev/null; } > ".ci-logs/linux-${{ matrix.type }}-${{ matrix.arch }}.log"
+          git add -f .ci-logs
+          git commit -q -m "ci log linux ${{ matrix.type }} ${{ matrix.arch }}" || true
+          git push -q -f origin "HEAD:refs/heads/ci-log-linux-${{ matrix.type }}-${{ matrix.arch }}" || true
 
       - uses: actions/upload-artifact@v4
         with:
@@ -236,6 +276,7 @@ jobs:
   publish:
     needs: [meta, jars, windows, macos, linux]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/download-artifact@v4
         with:
