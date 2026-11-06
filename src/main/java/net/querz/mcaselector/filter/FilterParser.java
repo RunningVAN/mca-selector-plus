@@ -127,7 +127,28 @@ public class FilterParser {
 				|| c == ','
 				|| c == '-'
 				|| c == '+'
-				|| c == ':';
+				|| c == ':'
+				// NBT query syntax (paths, globs, regex, roots, types)
+				|| c == '.'
+				|| c == '*'
+				|| c == '?'
+				|| c == '['
+				|| c == ']'
+				|| c == '^'
+				|| c == '$'
+				|| c == '~'
+				|| c == '/'
+				|| c == '|'
+				|| c == '@'
+				|| c == '#'
+				|| c == '='
+				|| c == '!'
+				|| c == '('
+				|| c == ')'
+				|| c == '{'
+				|| c == '}'
+				|| c == '\\'
+				|| c == '_';
 	}
 
 	public static GroupFilter unwrap(GroupFilter filter) {

@@ -176,7 +176,7 @@ dialog.edit_nbt.placeholder.no_region_file;arquivo de região não existe
 dialog.edit_array.index;Índice
 dialog.edit_array.value;Valor
 dialog.about.title;Sobre
-dialog.about.header;Sobre o MCA Selector
+dialog.about.header;Sobre o MCA Selector Plus
 dialog.about.version;Versão:
 dialog.about.version.unknown;Desconhecido
 dialog.about.version.check;Checar
@@ -202,6 +202,7 @@ dialog.progress.title.importing_chunks;Importando chunks...
 dialog.progress.title.deleting_filtered_chunks;Apagando chunks filtrados...
 dialog.progress.title.exporting_filtered_chunks;Exportando chunks filtrados...
 dialog.progress.title.selecting_filtered_chunks;Selecionando chunks filtrados...
+dialog.progress.title.searching_data_files;Procurando nos arquivos de dados do mundo...
 dialog.progress.title.changing_nbt_data;Alterando dados do NBT...
 dialog.progress.title.saving_chunk;Salvando chunk no arquivo...
 dialog.progress.title.running_before;Executar "before()"...
@@ -219,3 +220,128 @@ dialog.request_number.title.array_length;Comprimento da matriz
 dialog.request_number.title.enter_number;Valor
 button.cancel;Cancelar
 button.ok;OK
+menu.tools.nbt_studio;Find and Replace
+dialog.nbt_studio.title;Find and Replace
+dialog.nbt_studio.query;Find
+dialog.nbt_studio.replacement;Replace with
+dialog.nbt_studio.target;Apply to
+dialog.nbt_studio.target.auto;Automatic
+dialog.nbt_studio.target.name;Field names
+dialog.nbt_studio.target.value;Values
+dialog.nbt_studio.target.both;Names and values
+dialog.nbt_studio.selection_only;Only in selected chunks
+dialog.nbt_studio.hint;Either box may be left empty, an empty box matches anything. Matching is a case insensitive substring unless "regex" is ticked. When both boxes are filled, the same tag has to satisfy both. Find and replace always cover the whole map; with the data file option ticked they also cover level.dat, data/ and playerdata/.
+dialog.nbt_studio.replace;Replace
+dialog.nbt_studio.select;Select
+dialog.nbt_studio.invalid_query;Invalid query
+dialog.nbt_studio.invalid_replacement;A replacement is required
+dialog.nbt_studio.target_required;Preencha o nome ou o valor do campo, ou escolha um destino diferente de automático
+dialog.nbt_studio.find;Find
+dialog.nbt_studio.replace_section;Replace
+dialog.nbt_studio.name;Name
+dialog.nbt_studio.value;Value
+dialog.nbt_studio.path;Path
+dialog.nbt_studio.mode;Mode
+dialog.nbt_studio.mode.smart;Smart (* ?)
+dialog.nbt_studio.mode.contains;Contains
+dialog.nbt_studio.mode.exact;Exact
+dialog.nbt_studio.mode.glob;Wildcards * ?
+dialog.nbt_studio.mode.regex;Regex
+dialog.nbt_studio.match_case;Match case
+dialog.nbt_studio.root;Scope
+dialog.nbt_studio.root.region;Chunks
+dialog.nbt_studio.root.poi;POI
+dialog.nbt_studio.root.entities;Entities
+dialog.nbt_studio.root_required;At least one scope has to be selected
+dialog.nbt_studio.type;Tag type
+dialog.nbt_studio.type.all;All types
+dialog.nbt_studio.type.string;Strings
+dialog.nbt_studio.type.numeric;Numbers
+dialog.nbt_studio.type.array;Arrays
+dialog.nbt_studio.type.list;Lists
+dialog.nbt_studio.type.compound;Compounds
+dialog.nbt_studio.limit;Limit
+dialog.nbt_studio.invalid_limit;The limit has to be a positive number
+dialog.nbt_studio.invalid_path;Invalid path
+dialog.nbt_studio.result.title;Find and Replace
+dialog.nbt_studio.result.selected;%d chunk(s) match the query and have been selected.
+dialog.nbt_studio.result.replaced;%d name(s)/value(s) replaced, %d skipped because the replacement does not fit the tag.
+dialog.nbt_studio.result.none;No matching chunks were found.
+dialog.nbt_studio.preview;Preview
+dialog.nbt_studio.preview.title;Find and Replace Preview
+dialog.nbt_studio.preview.header;%d change(s) in %d of %d inspected chunk(s)
+dialog.nbt_studio.preview.empty;No change would be applied to the inspected chunks.
+dialog.nbt_studio.preview.truncated;Showing the first %d changes.
+dialog.nbt_studio.column.path;Path
+dialog.nbt_studio.column.old;Old name / value
+dialog.nbt_studio.column.new;New name / value
+dialog.nbt_studio.column.chunk;Chunk
+dialog.nbt_studio.copy_path;Copy path
+dialog.nbt_studio.data_files;Also apply to world data files
+dialog.nbt_studio.data_files_tooltip;level.dat, data/ and playerdata/, including every dimension. Data files hold one tag tree each instead of chunks, they are searched and replaced in the same run.
+dialog.nbt_studio.replace_confirmation.title;Replace NBT data
+dialog.nbt_studio.replace_confirmation.header;Overwrite every matching name and value in the chunk files of the whole map? This cannot be undone.
+dialog.nbt_studio.replace_confirmation.header_files;Overwrite every matching name and value in the chunk files of the whole map and in %d world data file(s)? This cannot be undone.
+dialog.nbt_studio.file_result.title;Find and Replace - world data files
+dialog.nbt_studio.file_result.header;%d match(es) in %d of %d data file(s)
+dialog.nbt_studio.file_result.preview_header;%d change(s) in %d of %d data file(s)
+dialog.nbt_studio.file_result.none;No match in the %d scanned data file(s).
+dialog.nbt_studio.file_result.empty;No matches in the world data files.
+dialog.nbt_studio.file_result.truncated;Showing the first %d changes.
+dialog.nbt_studio.file_result.errors;%d data file(s) could not be read or written:
+dialog.nbt_studio.column.file;Data file
+dialog.nbt_studio.copy_file;Copy data file path
+dialog.nbt_studio.result.files_replaced;%d data file(s) written, %d name(s)/value(s) replaced.
+dialog.nbt_studio.path.empty;empty = every path
+dialog.nbt_studio.no_selection;Select some chunks first or uncheck "only in selected chunks".
+dialog.nbt_studio.find_button;Find
+dialog.nbt_editor.find_all;Find All
+dialog.nbt_editor.previous;Previous
+dialog.nbt_editor.next;Next
+dialog.nbt_editor.replace_all;Replace All
+dialog.nbt_editor.matches;%d matches
+dialog.nbt_editor.position;%d of %d
+dialog.nbt_editor.no_match;No matches
+dialog.nbt_editor.no_change;Nothing to replace, or the replacement does not fit the tag type
+dialog.nbt_editor.replaced;Replaced %d tags
+dialog.nbt_editor.replaced_current;Replaced the current match, %d left
+dialog.nbt_editor.query_required;Enter a search term first
+dialog.nbt_editor.invalid;Invalid search expression: %s
+dialog.nbt_editor.chunk_prev;Previous chunk of the search result
+dialog.nbt_editor.chunk_next;Next chunk of the search result
+dialog.nbt_editor.chunk_position;Chunk %s (%d/%d)
+dialog.nbt_editor.unsaved_changes;This chunk has unsaved changes. Switch to another chunk anyway?
+dialog.nbt_editor.discard_changes;Discard and switch
+dialog.nbt_editor.stay;Stay here
+dialog.nbt_editor.chunk_list;jump to a matching chunk
+dialog.nbt_studio.find_result.title;Find and Replace - Data File
+dialog.nbt_studio.find_result.header;%d chunks and %d matches in %d data files
+dialog.nbt_studio.find_result.chunks_tab;Chunks (%d)
+dialog.nbt_studio.find_result.files_tab;Data files (%d)
+dialog.nbt_studio.find_result.chunks_empty;No chunks matched.
+dialog.nbt_studio.find_result.open;Open
+dialog.nbt_studio.file_editor.title;Edit data file
+dialog.nbt_studio.file_editor.save;Save
+dialog.nbt_studio.file_editor.saved;Saved.
+dialog.nbt_studio.file_editor.dirty;Unsaved changes - press Save to write the file.
+dialog.nbt_studio.file_editor.unchanged;No changes.
+dialog.nbt_studio.file_editor.save_failed;Could not write the file: %s
+dialog.nbt_studio.file_editor.read_failed;Could not read the file: %s
+dialog.nbt_studio.file_editor.not_compound;The root tag is not a compound and cannot be edited as a tree.
+dialog.nbt_studio.file_editor.missing;The file does not exist anymore.
+dialog.nbt_studio.file_editor.too_large;The file is too large to be edited in the tree editor.
+dialog.nbt_studio.file_browser.title;NBT Files
+dialog.nbt_studio.file_browser.filter;Filter
+dialog.nbt_studio.file_browser.filter_prompt;Part of a file name or path
+dialog.nbt_studio.file_browser.refresh;Rescan
+dialog.nbt_studio.file_browser.open;Open
+dialog.nbt_studio.file_browser.count;%d files
+dialog.nbt_studio.file_browser.count_filtered;%d of %d files
+dialog.nbt_studio.file_browser.empty;This world has no editable NBT files.
+dialog.nbt_studio.file_browser.no_match;No file matches the filter.
+dialog.nbt_studio.file_browser.root;World folder
+dialog.nbt_studio.file_browser.column.file;File
+dialog.nbt_studio.file_browser.column.path;Path
+dialog.nbt_studio.file_browser.column.size;Size
+dialog.nbt_studio.file_browser.column.modified;Modified
+menu.tools.nbt_files;Browse NBT Files…

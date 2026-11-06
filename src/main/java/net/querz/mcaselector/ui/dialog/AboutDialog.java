@@ -39,16 +39,23 @@ public class AboutDialog extends Alert {
 		HBox versionLabel = new HBox();
 		versionLabel.setAlignment(Pos.CENTER_LEFT);
 		String applicationVersion = "0";
+		String plusVersion = null;
 		try {
-			applicationVersion = FileHelper.getManifestAttributes().getValue("Application-Version");
-			versionLabel.getChildren().add(new Label(applicationVersion));
+			var attributes = FileHelper.getManifestAttributes();
+			applicationVersion = attributes.getValue("Application-Version");
+			plusVersion = attributes.getValue("Plus-Version");
+			// the same scheme as the window title: upstream core version first, then the Plus layer
+			versionLabel.getChildren().add(new Label(plusVersion == null || plusVersion.isEmpty()
+					? applicationVersion
+					: applicationVersion + " - Plus " + plusVersion));
 		} catch (IOException ex) {
 			versionLabel.getChildren().add(UIFactory.label(Translation.DIALOG_ABOUT_VERSION_UNKNOWN));
 		}
 		Button checkForUpdates = UIFactory.button(Translation.DIALOG_ABOUT_VERSION_CHECK);
 		final String finalApplicationVersion = applicationVersion;
+		final String finalPlusVersion = plusVersion;
 		checkForUpdates.setOnAction(
-				e -> handleCheckUpdate(finalApplicationVersion,
+				e -> handleCheckUpdate(finalApplicationVersion, finalPlusVersion,
 						b -> versionLabel.getChildren().set(versionLabel.getChildren().size() - 1, b)));
 
 		String copyright = "\u00A9 Querz";
@@ -69,7 +76,7 @@ public class AboutDialog extends Alert {
 		ImageView imgView = new ImageView(githubMark);
 		imgView.setScaleX(0.5);
 		imgView.setScaleY(0.5);
-		Hyperlink source = UIFactory.hyperlink("GitHub", "https://github.com/Querz/mcaselector", imgView);
+		Hyperlink source = UIFactory.hyperlink("GitHub", "https://github.com/RunningVAN/mcaselector-plus", imgView);
 		grid.add(source, 1, 3);
 
 		Label disclaimer = new Label("NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.");
@@ -83,17 +90,18 @@ public class AboutDialog extends Alert {
 		getDialogPane().getStylesheets().addAll(primaryStage.getScene().getStylesheets());
 	}
 
-	private void handleCheckUpdate(String applicationVersion, Consumer<Node> resultUIHandler) {
+	private void handleCheckUpdate(String applicationVersion, String plusVersion, Consumer<Node> resultUIHandler) {
 		Label checking = UIFactory.label(Translation.DIALOG_ABOUT_VERSION_CHECKING);
 		checking.getStyleClass().add("label-hint");
 		resultUIHandler.accept(checking);
 
 		// needs to run in separate thread so we can see the "checking..." label
 		Thread lookup = new Thread(() -> {
-			VersionChecker checker = new VersionChecker("Querz", "mcaselector");
+			// releases of the Plus layer are published by the fork, upstream only has the plain core
+			VersionChecker checker = new VersionChecker(VersionChecker.PLUS_OWNER, VersionChecker.PLUS_REPOSITORY);
 			try {
 				VersionChecker.VersionData version = checker.fetchLatestVersion();
-				if (version != null && version.isNewerThan(applicationVersion)) {
+				if (version != null && version.isNewerThanPlus(applicationVersion, plusVersion)) {
 					HBox box = new HBox();
 					String hyperlinkText = version.getTag() + (version.isPrerelease() ? " (pre)" : "");
 					Hyperlink download = UIFactory.hyperlink(hyperlinkText, version.getLink(), null);

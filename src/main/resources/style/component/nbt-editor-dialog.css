@@ -25,6 +25,24 @@
     -fx-padding: -1 1 -1 -1;
 }
 
+.nbt-find-bar {
+    -fx-background-color: -color-dialog-background;
+    -fx-border-color: -color-dialog-separator;
+    -fx-border-width: 0 0 1 0;
+}
+
+.nbt-find-bar .text-field {
+    -fx-min-width: 120px;
+}
+
+.nbt-find-bar-status {
+    -fx-padding: 0 0 0 6px;
+}
+
+.nbt-find-bar-error {
+    -fx-text-fill: -color-error-text;
+}
+
 .nbt-tree-view-holder {
     -fx-background-color: -color-tree-view-background;
     -fx-padding: 0;

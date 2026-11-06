@@ -54,7 +54,7 @@ public final class ParamExecutor {
 			.get());
 		options.addOption(Option.builder("v")
 			.longOpt("version")
-			.desc("Shows the current version of MCA Selector")
+			.desc("Shows the current version of MCA Selector Plus")
 			.get());
 
 		options.addOption(Option.builder("m")

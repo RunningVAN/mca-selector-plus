@@ -176,7 +176,7 @@ dialog.edit_nbt.placeholder.no_region_file;區域檔案不存在
 dialog.edit_array.index;索引
 dialog.edit_array.value;值
 dialog.about.title;關於
-dialog.about.header;關於 MCA Selector
+dialog.about.header;關於 MCA Selector Plus
 dialog.about.version;版本：
 dialog.about.version.unknown;未知
 dialog.about.version.check;檢查更新
@@ -202,6 +202,7 @@ dialog.progress.title.importing_chunks;正在匯入區塊…
 dialog.progress.title.deleting_filtered_chunks;正在刪除篩選區塊…
 dialog.progress.title.exporting_filtered_chunks;正在匯出篩選區塊…
 dialog.progress.title.selecting_filtered_chunks;正在選擇篩選區塊…
+dialog.progress.title.searching_data_files;正在搜尋世界資料檔案...
 dialog.progress.title.changing_nbt_data;正在變更 NBT 資料…
 dialog.progress.title.saving_chunk;正在將塊儲存到檔案…
 dialog.progress.title.running_before;執行“before()”...
@@ -219,3 +220,128 @@ dialog.request_number.title.array_length;數組的長度
 dialog.request_number.title.enter_number;價值
 button.cancel;取消
 button.ok;確定
+menu.tools.nbt_studio;查找與替換
+dialog.nbt_studio.title;查找與替換
+dialog.nbt_studio.query;尋找
+dialog.nbt_studio.replacement;取代為
+dialog.nbt_studio.target;套用對象
+dialog.nbt_studio.target.auto;自动判断
+dialog.nbt_studio.target.name;字段名
+dialog.nbt_studio.target.value;字段值
+dialog.nbt_studio.target.both;字段名与字段值
+dialog.nbt_studio.selection_only;僅在選取的區塊中執行
+dialog.nbt_studio.hint;欄位名、欄位值至少要填一個，留空的那個表示不限；預設不分大小寫，包含即命中；勾選「正規表示式」後按 Java 正規表示式比對。兩個框都填時，只要求兩部分都出現在同一塊區塊裡，不要求落在同一個標籤上。查找與取代作用於全圖；勾選「同時處理世界資料檔」後，還會作用於各維度的 level.dat、data/、playerdata/ 以及資料包裡的結構檔。
+dialog.nbt_studio.replace;取代
+dialog.nbt_studio.select;Select
+dialog.nbt_studio.invalid_query;查询无效
+dialog.nbt_studio.invalid_replacement;必須填寫取代內容
+dialog.nbt_studio.target_required;請填寫欄位名稱或欄位值，或選擇「自動判斷」以外的套用對象
+dialog.nbt_studio.find;尋找
+dialog.nbt_studio.replace_section;取代
+dialog.nbt_studio.name;欄位名稱
+dialog.nbt_studio.value;欄位值
+dialog.nbt_studio.path;路徑
+dialog.nbt_studio.mode;比對模式
+dialog.nbt_studio.mode.smart;智慧（* ? 萬用字元）
+dialog.nbt_studio.mode.contains;包含文字
+dialog.nbt_studio.mode.exact;完全相符
+dialog.nbt_studio.mode.glob;萬用字元 * ?
+dialog.nbt_studio.mode.regex;正規表示式
+dialog.nbt_studio.match_case;區分大小寫
+dialog.nbt_studio.root;作用域
+dialog.nbt_studio.root.region;區塊
+dialog.nbt_studio.root.poi;POI
+dialog.nbt_studio.root.entities;實體
+dialog.nbt_studio.root_required;至少需要選擇一個作用域
+dialog.nbt_studio.type;標籤類型
+dialog.nbt_studio.type.all;全部類型
+dialog.nbt_studio.type.string;字串
+dialog.nbt_studio.type.numeric;數字
+dialog.nbt_studio.type.array;陣列
+dialog.nbt_studio.type.list;列表
+dialog.nbt_studio.type.compound;複合標籤
+dialog.nbt_studio.limit;上限
+dialog.nbt_studio.invalid_limit;上限必須是正整數
+dialog.nbt_studio.invalid_path;路徑無效
+dialog.nbt_studio.result.title;查找與替換 執行結果
+dialog.nbt_studio.result.selected;共有 %d 個區塊符合查詢，已加入選取範圍。
+dialog.nbt_studio.result.replaced;已取代 %d 處欄位名稱/欄位值，%d 處因取代內容與標籤型別不符被略過。
+dialog.nbt_studio.result.none;沒有找到符合的區塊。
+dialog.nbt_studio.preview;預覽
+dialog.nbt_studio.preview.title;查找與替換 取代預覽
+dialog.nbt_studio.preview.header;共 %d 處變更，來自已檢查的 %d/%d 個區塊
+dialog.nbt_studio.preview.empty;已檢查的區塊中沒有任何變更。
+dialog.nbt_studio.preview.truncated;僅顯示前 %d 處變更。
+dialog.nbt_studio.column.path;路徑
+dialog.nbt_studio.column.old;原名稱 / 原值
+dialog.nbt_studio.column.new;新名稱 / 新值
+dialog.nbt_studio.column.chunk;Chunk
+dialog.nbt_studio.copy_path;Copy path
+dialog.nbt_studio.data_files;同時處理世界資料檔
+dialog.nbt_studio.data_files_tooltip;level.dat、data/ 與 playerdata/（含所有維度）以及資料包裡的結構檔。資料檔裡放的是整棵標籤樹而不是區塊，查找與取代在同一輪裡完成。
+dialog.nbt_studio.replace_confirmation.title;取代 NBT 資料
+dialog.nbt_studio.replace_confirmation.header;將覆寫全圖區塊檔案中所有符合的名稱與值，此操作無法復原。是否繼續？
+dialog.nbt_studio.replace_confirmation.header_files;將覆寫全圖區塊檔案以及 %d 個世界資料檔中所有符合的名稱與值，此操作無法復原。是否繼續？
+dialog.nbt_studio.file_result.title;查找與替換 — 世界資料檔
+dialog.nbt_studio.file_result.header;共 %d 處命中，來自 %d/%d 個資料檔
+dialog.nbt_studio.file_result.preview_header;共 %d 處變更，來自 %d/%d 個資料檔
+dialog.nbt_studio.file_result.none;已檢查 %d 個資料檔，沒有命中。
+dialog.nbt_studio.file_result.empty;世界資料檔中沒有任何命中。
+dialog.nbt_studio.file_result.truncated;僅顯示前 %d 處變更。
+dialog.nbt_studio.file_result.errors;%d 個資料檔讀取或寫入失敗：
+dialog.nbt_studio.column.file;資料檔
+dialog.nbt_studio.copy_file;複製資料檔路徑
+dialog.nbt_studio.result.files_replaced;已寫入 %d 個資料檔，取代 %d 處名稱/值。
+dialog.nbt_studio.path.empty;留空 = 全部路徑
+dialog.nbt_studio.no_selection;請先在地圖中選擇區塊，或取消「僅在選取的區塊中執行」。
+dialog.nbt_studio.find_button;尋找
+dialog.nbt_editor.find_all;全部尋找
+dialog.nbt_editor.previous;上一個
+dialog.nbt_editor.next;下一個
+dialog.nbt_editor.replace_all;全部取代
+dialog.nbt_editor.matches;共 %d 處符合
+dialog.nbt_editor.position;第 %d/%d 處
+dialog.nbt_editor.no_match;沒有符合項目
+dialog.nbt_editor.no_change;沒有可取代的符合項目，或取代內容與標籤類型不符
+dialog.nbt_editor.replaced;已取代 %d 處
+dialog.nbt_editor.replaced_current;已取代目前符合項，剩餘 %d 處
+dialog.nbt_editor.query_required;請先輸入尋找內容
+dialog.nbt_editor.invalid;尋找運算式無效：%s
+dialog.nbt_editor.chunk_prev;上一個命中區塊
+dialog.nbt_editor.chunk_next;下一個命中區塊
+dialog.nbt_editor.chunk_position;區塊 %s（%d/%d）
+dialog.nbt_editor.unsaved_changes;目前區塊有未儲存的修改，仍要切換到其他區塊嗎？
+dialog.nbt_editor.discard_changes;放棄修改並切換
+dialog.nbt_editor.stay;留在此處
+dialog.nbt_editor.chunk_list;跳轉到命中的區塊
+dialog.nbt_studio.find_result.title;查找與替換 - 資料檔
+dialog.nbt_studio.find_result.header;%d 個區塊、%d 處資料檔符合（%d 個檔案）
+dialog.nbt_studio.find_result.chunks_tab;區塊 (%d)
+dialog.nbt_studio.find_result.files_tab;資料檔 (%d)
+dialog.nbt_studio.find_result.chunks_empty;沒有區塊符合。
+dialog.nbt_studio.find_result.open;開啟
+dialog.nbt_studio.file_editor.title;編輯資料檔
+dialog.nbt_studio.file_editor.save;儲存
+dialog.nbt_studio.file_editor.saved;已儲存。
+dialog.nbt_studio.file_editor.dirty;有未儲存的修改，按「儲存」寫回檔案。
+dialog.nbt_studio.file_editor.unchanged;沒有修改。
+dialog.nbt_studio.file_editor.save_failed;寫入檔案失敗：%s
+dialog.nbt_studio.file_editor.read_failed;讀取檔案失敗：%s
+dialog.nbt_studio.file_editor.not_compound;根標籤不是 compound，無法以樹狀編輯。
+dialog.nbt_studio.file_editor.missing;檔案已不存在。
+dialog.nbt_studio.file_editor.too_large;檔案太大，無法用樹狀編輯器開啟。
+dialog.nbt_studio.file_browser.title;NBT 檔案
+dialog.nbt_studio.file_browser.filter;篩選
+dialog.nbt_studio.file_browser.filter_prompt;檔案名稱或路徑的一部分
+dialog.nbt_studio.file_browser.refresh;重新掃描
+dialog.nbt_studio.file_browser.open;開啟
+dialog.nbt_studio.file_browser.count;%d 個檔案
+dialog.nbt_studio.file_browser.count_filtered;%d / %d 個檔案
+dialog.nbt_studio.file_browser.empty;這個世界裡沒有可編輯的 NBT 檔案。
+dialog.nbt_studio.file_browser.no_match;沒有符合篩選條件的檔案。
+dialog.nbt_studio.file_browser.root;世界目錄
+dialog.nbt_studio.file_browser.column.file;檔案
+dialog.nbt_studio.file_browser.column.path;路徑
+dialog.nbt_studio.file_browser.column.size;大小
+dialog.nbt_studio.file_browser.column.modified;修改時間
+menu.tools.nbt_files;瀏覽 NBT 檔案…

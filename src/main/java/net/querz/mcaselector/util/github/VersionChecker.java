@@ -13,6 +13,15 @@ public class VersionChecker {
 
 	private static final String endpointTemplate = "https://api.github.com/repos/%s/%s/releases/latest";
 
+	/**
+	 * The Plus layer is released from the fork, not from the upstream repository. Releases here are
+	 * tagged {@code plus-<core>-<plus>} (e.g. {@code plus-2.9-1.7}), so a plain dotted comparison of
+	 * the tag against the core version would not work.
+	 */
+	public static final String PLUS_OWNER = "RunningVAN";
+	public static final String PLUS_REPOSITORY = "mcaselector-plus";
+	private static final String PLUS_TAG_PREFIX = "plus-";
+
 	private final String owner;
 	private final String repository;
 
@@ -88,6 +97,35 @@ public class VersionChecker {
 
 		public boolean isNewerThan(String tag) {
 			return compare(this.tag, tag) > 0;
+		}
+
+		/**
+		 * Compares the tag of a Plus release ({@code plus-<core>-<plus>}) against the running core and
+		 * Plus version: the core version wins, the Plus version only breaks a tie. Tags that do not
+		 * follow the scheme fall back to a plain comparison of the tag.
+		 */
+		public boolean isNewerThanPlus(String coreVersion, String plusVersion) {
+			String[] latest = splitPlusTag(tag);
+			if (latest == null) {
+				return isNewerThan(coreVersion);
+			}
+			int core = compare(latest[0], coreVersion);
+			if (core != 0) {
+				return core > 0;
+			}
+			return compare(latest[1], plusVersion == null || plusVersion.isEmpty() ? "0" : plusVersion) > 0;
+		}
+
+		private static String[] splitPlusTag(String tag) {
+			if (tag == null || tag.isEmpty()) {
+				return null;
+			}
+			String value = tag.startsWith(PLUS_TAG_PREFIX) ? tag.substring(PLUS_TAG_PREFIX.length()) : tag;
+			String[] parts = value.split("-", 2);
+			if (parts[0].isEmpty()) {
+				return null;
+			}
+			return new String[] {parts[0], parts.length > 1 && !parts[1].isEmpty() ? parts[1] : "0"};
 		}
 
 		private int compare(String a, String b) {

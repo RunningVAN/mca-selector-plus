@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Create a report to help improve MCA Selector
+about: Create a report to help improve MCA Selector Plus
 title: ''
 labels: ''
 assignees: ''
@@ -25,14 +25,14 @@ If applicable, add screenshots to help explain your problem.
 Relevant world files ('.mca'-files) and selection files ('.csv'-files) must be bundled in a '.zip'-archive.
 To create the 'debug.log' file, follow these steps:
 1. Enable 'Print debug messages' in 'File'-->'Settings'.
-2. Restart MCA Selector.
+2. Restart MCA Selector Plus.
 3. Reproduce the problem.
-4. Close MCA Selector and attach the 'debug.log' file to this bug report.
+4. Close MCA Selector Plus and attach the 'debug.log' file to this bug report.
 
 **Environment (please complete the following information):**
 - OS: [e.g. Windows 10]
 - Java version: [e.g. 21 and no, "newest version" is not a version]
-- Version of MCA Selector [e.g. 2.9]
+- Version of MCA Selector Plus [e.g. 2.9 - Plus 1.0, shown in Help --> About]
 
 **Additional context**
 Add any other context about the problem here, e.g.:

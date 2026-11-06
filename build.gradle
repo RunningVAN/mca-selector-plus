@@ -16,11 +16,22 @@ group = 'net.querz'
 compileJava.options.encoding = 'UTF-8'
 application.mainClass = 'net.querz.mcaselector.Main'
 java.sourceCompatibility = JavaVersion.VERSION_21
-var copyright = project.findProperty('application.copyright').toString()
-var applicationName = project.findProperty('application.name').toString()
+// the plus.* keys live in the same file but are owned by this fork, the upstream keys stay untouched
+var prop = { String key, String fallback -> project.findProperty(key)?.toString() ?: project.findProperty(fallback).toString() }
+var copyright = prop('plus.copyright', 'application.copyright')
+// the pipeline is the upstream one (jpackage + Inno Setup, same layout, same keys), but the app image
+// and the installer carry the plus name: an installed MCA Selector Plus gets its own folder, its own
+// start menu entry and its own uninstaller, so it can live next to an installed upstream MCA Selector
+// instead of overwriting it.
+var plusApplicationName = project.findProperty('plus.application.name').toString()
+// a linux package name has to be lower case and without spaces, a directory in /opt is no place for
+// "MCA Selector Plus"; everything else (window title, jar manifest, installer display name) keeps the
+// readable form
+var plusLinuxName = 'mcaselector-plus'
 var matrixType = project.findProperty("matrixType").toString()
 var projectName = project.name
 var projectVersion = project.version
+var plusVersion = project.findProperty('plus.version').toString()
 
 javafx {
 	version = "$java.sourceCompatibility"
@@ -61,6 +72,9 @@ dependencies {
 	testImplementation('org.reflections:reflections:0.10.2')
 	testImplementation('commons-io:commons-io:2.18.0')
 	testRuntimeOnly('org.junit.platform:junit-platform-launcher')
+	// the launcher API is implemented by FxTestLauncherSessionListener, which keeps the JavaFX
+	// toolkit alive for the whole run instead of letting the first window-closing test shut it down
+	testImplementation('org.junit.platform:junit-platform-launcher')
 }
 
 compileJava {
@@ -94,6 +108,7 @@ jar {
 	manifest.attributes (
 		'Main-Class': application.mainClass,
 		'Application-Version': projectVersion,
+		'Plus-Version': plusVersion,
 		'Copyright': copyright,
 		'Class-Path': configurations.shadow.files.stream()
 				.filter($it -> !$it.name.startsWith('javafx')).collect{"lib/$it.name"}.join(' ')
@@ -103,6 +118,7 @@ jar {
 }
 
 shadowJar {
+	archiveFileName = "${projectName}-${projectVersion}-all.jar"
 	minimize {
 		exclude(dependency('org.apache.logging.log4j:log4j-core:.*'))
 		exclude(dependency('org.apache.groovy:groovy-jsr223:.*'))
@@ -115,6 +131,7 @@ shadowJar {
 	manifest.attributes (
 		'Main-Class': application.mainClass,
 		'Application-Version': projectVersion,
+		'Plus-Version': plusVersion,
 		'Copyright': copyright
 	)
 	from 'LICENSE'
@@ -137,7 +154,7 @@ runtime {
 	jpackage {
 		jvmArgs = ['-Xmx4096m']
 		if (OperatingSystem.current().isWindows()) {
-			imageName = applicationName
+			imageName = plusApplicationName
 			skipInstaller = true
 			imageOptions = [
 				'--icon', 'installer/windows/icon.ico',
@@ -145,8 +162,10 @@ runtime {
 			]
 		} else if (OperatingSystem.current().isMacOsX()) {
 			installerType = "dmg"
-			imageName = applicationName
-			installerName = applicationName
+			// "MCA Selector Plus.app" and "MCA Selector Plus-x.y.dmg", not "MCA Selector ...",
+			// so the bundle sits next to the upstream one in /Applications
+			imageName = plusApplicationName
+			installerName = plusApplicationName
 			imageOptions = [
 				'--icon', 'installer/macos/icon.icns',
 				'--copyright', copyright
@@ -158,6 +177,11 @@ runtime {
 			]
 		} else if (OperatingSystem.current().isLinux()) {
 			installerType = matrixType ?: "deb"
+			// install into /opt/mcaselector-plus and name the deb/rpm mcaselector-plus instead of
+			// mcaselector. The installer stage takes --name from installerName (default:
+			// project.name), so it must be set too or the package stays "mcaselector".
+			imageName = plusLinuxName
+			installerName = plusLinuxName
 			imageOptions = [
 				'--icon', 'installer/linux/icon.png',
 				'--copyright', copyright,

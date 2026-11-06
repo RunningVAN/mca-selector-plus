@@ -39,13 +39,22 @@ public class Window extends Application {
 	public void start(Stage primaryStage) {
 		this.primaryStage = primaryStage;
 		String version;
+		String plusVersion;
 		try {
-			version = FileHelper.getManifestAttributes().getValue("Application-Version");
+			var attributes = FileHelper.getManifestAttributes();
+			version = attributes.getValue("Application-Version");
+			plusVersion = attributes.getValue("Plus-Version");
 		} catch (IOException ex) {
 			version = "dev";
+			plusVersion = null;
+		}
+		if (plusVersion == null || plusVersion.isEmpty()) {
+			plusVersion = "dev";
 		}
 
-		title = "MCA Selector " + version;
+		// the core version is the upstream MCA Selector version, the Plus version counts the
+		// extension layer on top of it
+		title = "MCA Selector Plus " + version + " - Plus " + plusVersion;
 		primaryStage.setTitle(title);
 		primaryStage.getIcons().add(FileHelper.getIconFromResources("img/icon"));
 

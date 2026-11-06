@@ -5,16 +5,31 @@
 gradlePropertiesFile="$1/gradle.properties"
 
 ReadGradleProperty() {
-  local value=`cat $gradlePropertiesFile | grep "$1" | cut -d'=' -f2`
+  # match the key exactly: the plus layer adds keys such as plus.version and
+  # plus.application.name, a loose grep would collect several lines here
+  local value=`grep -m 1 "^$1=" "$gradlePropertiesFile" | cut -d'=' -f2-`
+  echo "$value"
+}
+
+# Property <plus key> <upstream key>: prefer the plus value, fall back to the upstream one so that
+# this script still works on a checkout without the plus keys
+Property() {
+  local value=$(ReadGradleProperty "$1")
+  if [ -z "$value" ]; then
+    value=$(ReadGradleProperty "$2")
+  fi
   echo "$value"
 }
 
 projectName='mcaselector'
-applicationName=$(ReadGradleProperty 'application.name')
-applicationURL=$(ReadGradleProperty 'application.url')
-applicationAuthor=$(ReadGradleProperty 'application.author')
-applicationCopyright=$(ReadGradleProperty 'application.copyright')
+# everything the installer shows and installs into is the plus name: the app image, the install
+# directory, the start menu entry, the uninstaller entry and the registry key
+applicationName=$(Property 'plus.application.name' 'application.name')
+applicationURL=$(Property 'plus.application.url' 'application.url')
+applicationAuthor=$(Property 'plus.application.author' 'application.author')
+applicationCopyright=$(Property 'plus.copyright' 'application.copyright')
 applicationVersion=$(ReadGradleProperty 'version')
+plusVersion=$(ReadGradleProperty 'plus.version')
 
 # Installer <project root> <version>
 Installer() {
@@ -29,11 +44,14 @@ Installer() {
   cp "$1/installer/windows/large.bmp" "$innoSetupDir"
   cp -r "$1/build/jpackage/$applicationName" "$innoSetupDir"
   cp "$1/installer/windows/inno.iss" "$innoSetupDir"
+  # the chinese messages ship with the repository, so packaging never needs a download
+  cp -r "$1/installer/windows/Languages" "$innoSetupDir"
   sed -i "s/\${applicationName}/$applicationName/g" "$innoSetupDir/inno.iss"
   sed -i "s/\${applicationUrl}/${applicationURL////\\/}/g" "$innoSetupDir/inno.iss"
   sed -i "s/\${applicationAuthor}/$applicationAuthor/g" "$innoSetupDir/inno.iss"
   sed -i "s/\${applicationCopyright}/$applicationCopyright/g" "$innoSetupDir/inno.iss"
   sed -i "s/\${applicationVersion}/$applicationVersion/g" "$innoSetupDir/inno.iss"
+  sed -i "s/\${plusVersion}/$plusVersion/g" "$innoSetupDir/inno.iss"
 }
 
 Installer $1

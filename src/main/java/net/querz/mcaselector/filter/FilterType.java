@@ -31,6 +31,7 @@ public enum FilterType {
 	TILE_ENTITY_AMOUNT("#TileEntities", TileEntityAmountFilter::new, Format.NUMBER),
 	CIRCLE("Circle", CircleFilter::new, Format.TEXT),
 	BORDER("Border", BorderFilter::new, Format.NUMBER),
+	NBT("NBT", NbtFilter::new, Format.TEXT),
 	CUSTOM("Custom", CustomFilter::new, Format.TEXT),
 	SCRIPT("Script", CustomFilter::new, Format.TEXT, false);
 

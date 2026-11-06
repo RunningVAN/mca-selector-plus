@@ -1,0 +1,10 @@
+# keep the shell scripts byte-identical on every runner, a CRLF checkout on the
+# windows runner would break the shebang of installer/init and installer/windows/init
+* text=auto
+*.sh       text eol=lf
+*.desktop  text eol=lf
+*.isl      text eol=crlf
+installer/init          text eol=lf
+installer/windows/init  text eol=lf
+gradlew       text eol=lf
+*.iss         text eol=crlf
