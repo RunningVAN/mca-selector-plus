@@ -1,16 +1,3 @@
----
-AIGC:
-    Label: "1"
-    ContentProducer: 001191440300708461136T1XGW3
-    ProduceID: 4a51877c63f78dcbd7bc8ccffcc1ce58_edf19eaed91a11f19280525400393706
-    ReservedCode1: YgvAXHGeiiMoZBFrPxRFQhEr6rsJavyYvGZtUap+4P15kzwVx9t65fDbDcJW5NgOzFaqKgb+9S8RiYjumFCck5voDPA55LRLj34GWRDjhO15JNywVoMzmPDYqr6QRDq41wv+MJyQL0h/CThFXnNyhwhe4TpY7eBvlHWvXMf43J61ETm9d5OMMmdewNg=
-    ContentPropagator: 001191440300708461136T1XGW3
-    PropagateID: 4a51877c63f78dcbd7bc8ccffcc1ce58_edf19eaed91a11f19280525400393706
-    ReservedCode2: YgvAXHGeiiMoZBFrPxRFQhEr6rsJavyYvGZtUap+4P15kzwVx9t65fDbDcJW5NgOzFaqKgb+9S8RiYjumFCck5voDPA55LRLj34GWRDjhO15JNywVoMzmPDYqr6QRDq41wv+MJyQL0h/CThFXnNyhwhe4TpY7eBvlHWvXMf43J61ETm9d5OMMmdewNg=
----
-
-
-
 # MCA-Selector Plus
 
 基于 [MCA Selector](https://github.com/Querz/mcaselector) 2.9 的增强分支：复用 MCA Selector 的区块/区域读写、渲染、选区与批量任务核心，在其上实现了一套 **NBT Studio 风格的 NBT 查找与替换** 能力，可直接对整个世界做 NBT 级别的批量搜索、批量改名、批量改值，范围同时覆盖区块文件（region/poi/entities）与世界数据文件（`level.dat`、`data/`、`playerdata/` 及所有维度的同名目录）。
@@ -207,20 +194,20 @@ value=minecraft:(.+)_block mode=regex => mca:$1
 
 ```bash
 # 1) 查询：哪些区块含有 minecraft:stone（输出 CSV 选区）
-java -jar mca-selector-plus-2.17-all.jar --mode select \
+java -jar mca-selector-plus-2.9-plus-1.0-all.jar --mode select \
   -w /path/to/world --query 'NBT contains "value=minecraft:stone"' -o stone.csv
 
 # 2) 批量替换整个世界
-java -jar mca-selector-plus-2.17-all.jar --mode change \
+java -jar mca-selector-plus-2.9-plus-1.0-all.jar --mode change \
   -w /path/to/world --fields 'NbtReplace="value=minecraft:stone mode=exact => minecraft:dirt"'
 
 # 3) 只替换选区内的区块
-java -jar mca-selector-plus-2.17-all.jar --mode change \
+java -jar mca-selector-plus-2.9-plus-1.0-all.jar --mode change \
   -w /path/to/world -s selection.csv \
   --fields 'NbtReplace="value=minecraft:stone mode=exact => minecraft:dirt"'
 
 # 4) POI 里名字含 portal 的标签
-java -jar mca-selector-plus-2.17-all.jar --mode select \
+java -jar mca-selector-plus-2.9-plus-1.0-all.jar --mode select \
   -w /path/to/world --query 'NBT contains "root=poi name=portal"' -o poi.csv
 ```
 
@@ -256,14 +243,14 @@ java -jar mca-selector-plus-2.17-all.jar --mode select \
 需要 JDK 21（JavaFX 由 Gradle 依赖提供）。
 
 ```bash
-./gradlew shadowJar          # 产出 build/libs/mca-selector-plus-2.17-all.jar
+./gradlew shadowJar          # 产出 build/libs/mca-selector-plus-2.9-plus-1.0-all.jar
 ./gradlew test               # 单元测试
 ```
 
 运行 GUI：
 
 ```bash
-java -jar build/libs/mca-selector-plus-2.17-all.jar
+java -jar build/libs/mca-selector-plus-2.9-plus-1.0-all.jar
 ```
 
 ## 七、验证情况
@@ -294,17 +281,15 @@ java -jar build/libs/mca-selector-plus-2.17-all.jar
   - 真实世界（`Skyline Sprint [1.1.0]-Realms`）复核：一打开就列出 108 个文件、6 个分组（世界根、`data`、`playerdata`、`generated/minecraft/structures`、`DIM-1/data`、`DIM1/data`），筛选 `raids` 后只剩 3 个（`data/raids.dat`、`DIM-1/data/raids.dat`、`DIM1/data/raids_end.dat`），计数显示「3 / 108 个文件」；
   - 全部测试 63 项通过（1 项跳过）。
 
-- 菜单改名与全类型增删改整合（2.17 起）：
+- 菜单改名与全类型增删改整合（Plus 层迭代）：
   - 菜单项由 `NBT Studio` 改为 `查找与替换`（`Shift+Cmd/Ctrl+H` 不变），19 份语言文件同步：`zh_CN` = 查找与替换、`zh_TW` = 查找與替換、其余 17 份 = Find and Replace，无一处残留旧名；
   - 增删操作条抽成公共组件 `NBTEditorOptionsBar`，区块编辑器的三个页签（region / poi / entities）与数据文件编辑器（`level.dat`、`data/*.dat`、`playerdata/*.dat`、结构文件）共用同一份实现；
   - headless 实测数据文件编辑器：12 个新增类型按钮全部可用（`ADD buttons=12 enabled=12`），未选中时退回复合兜底；根节点垃圾桶不可用（`DELETE disabled at root=true`）；对 `level.dat` 新增再删除后保存，读回键集合仍为 `[RandomSeed, LevelName]`，证明增删只作用于所选节点且写回正确；
   - headless 实测区块编辑器：三个页签各有 13 个按钮（1 删除 + 12 新增），切换页签后按钮状态随之重算；
   - 全量测试 63 项通过、1 项跳过（`skipOnMac` 的 GUI 用例）：`NbtEditorTabSwitchTest`、`NbtEditorTabSwitchRealWorldTest`、`NbtEditorChunkWalkTest`、`NbtStudioResultPaneTest`、`NbtStudioMergedWindowShotTest`、`NbtFileListingTest`、`NbtDataFilesStructureTest`、`NbtStudioCoreTest`、`NbtReplaceFieldTest`；
-  - 交付件：`build/libs/mca-selector-plus-2.17-all.jar`（19.5 MB，`Application-Version: 2.17`，可直接 `java -jar` 启动）。
+  - 交付件：`build/libs/mca-selector-plus-2.9-plus-1.0-all.jar`（19.4 MB，`Application-Version: 2.9` / `Plus-Version: 1.0`，可直接 `java -jar` 启动）。
 
 ## 八、说明
 
-- 本项目是 MCA Selector 的修改分支，遵循原项目 GPL-3.0 许可证与署名要求。
+- 本项目是 MCA Selector 的修改分支，遵循原项目的 MIT 许可证与署名要求（上游版权归 Querz，Plus 层归本仓库作者）。
 - 内部包名、配置目录、缓存路径保持 `mcaselector` 不变，以便与已安装版本共用配置；仅对外显示名改为 **MCA-Selector Plus**。
-*（内容由AI生成，仅供参考）*
-*（内容由AI生成，仅供参考）*

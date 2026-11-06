@@ -1,0 +1,59 @@
+name: release plus
+
+# Publishes a Plus release for every tag of the form plus-<core>-<plus>, e.g. plus-2.9-1.0.
+#
+# Upstream's own release.yml only runs for releases on the master branch, so it stays silent for
+# these tags and the packaged installers are never built here: this repository ships the fat jar,
+# which is the artefact the README points at.
+
+on:
+  push:
+    tags:
+      - 'plus-*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: set up jdk 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: set up gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: build the fat jar
+        run: ./gradlew --no-daemon shadowJar
+
+      - name: read the versions out of the jar
+        id: versions
+        run: |
+          JAR=$(ls build/libs/*-plus-*-all.jar | head -1)
+          echo "jar=$JAR" >> "$GITHUB_OUTPUT"
+          unzip -p "$JAR" META-INF/MANIFEST.MF | grep -E 'Application-Version|Plus-Version' || true
+          echo "shown=$(unzip -p "$JAR" META-INF/MANIFEST.MF | grep -E '^Application-Version' | cut -d' ' -f2- | tr -d '\r')" >> "$GITHUB_OUTPUT"
+          echo "plus=$(unzip -p "$JAR" META-INF/MANIFEST.MF | grep -E '^Plus-Version' | cut -d' ' -f2- | tr -d '\r')" >> "$GITHUB_OUTPUT"
+
+      - name: publish the release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: MCA Selector ${{ steps.versions.outputs.shown }} - Plus ${{ steps.versions.outputs.plus }}
+          body: |
+            MCA Selector **${{ steps.versions.outputs.shown }}** with the Plus layer **${{ steps.versions.outputs.plus }}**.
+
+            Everything upstream does is unchanged; the Plus layer adds world-wide NBT search and
+            replace, a data file editor and an NBT file browser. Details, download instructions and
+            the build are in [README-PLUS.md](https://github.com/RunningVAN/mca-selector-plus/blob/plus/README-PLUS.md),
+            the query syntax and CLI reference in [README-NBT-STUDIO.md](https://github.com/RunningVAN/mca-selector-plus/blob/plus/README-NBT-STUDIO.md).
+
+            Requires JDK 21: `java -jar mca-selector-plus-${{ steps.versions.outputs.shown }}-plus-${{ steps.versions.outputs.plus }}-all.jar`
+          files: build/libs/*-plus-*-all.jar
+          fail_on_unmatched_files: true

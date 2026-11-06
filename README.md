@@ -1,3 +1,9 @@
+> **This is the MCA Selector Plus fork.** It is MCA Selector plus an extension layer that adds
+> NBT Studio style world-wide NBT search and replace, a data file editor and an NBT file browser.
+> Downloads, the version scheme and the full feature list are in **[README-PLUS.md](README-PLUS.md)**;
+> the reference of the query syntax and the CLI is in [README-NBT-STUDIO.md](README-NBT-STUDIO.md).
+> Everything below is the upstream documentation and applies unchanged.
+
 # MCA Selector
 [![total downloads](https://img.shields.io/github/downloads/Querz/mcaselector/total.svg)](https://github.com/Querz/mcaselector/releases) [![paypal](https://img.shields.io/badge/donate-PayPal-green.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=3PV2GDWZL8HCA) [![chat](https://img.shields.io/discord/722924391805223113?logo=discord)](https://discord.gg/h942U8U)
 

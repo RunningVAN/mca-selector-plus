@@ -9,6 +9,21 @@ The upstream core is never forked away from: this repository tracks `Querz/mcase
 the Plus layer on top of every new release, so all upstream fixes and new Minecraft versions arrive
 without manual porting.
 
+## Download and run
+
+Grab `mca-selector-plus-<core>-plus-<plus>-all.jar` from the
+[releases page](https://github.com/RunningVAN/mca-selector-plus/releases) and run it with JDK 21:
+
+```bash
+java -jar mca-selector-plus-2.9-plus-1.0-all.jar
+```
+
+On Linux, JavaFX has to be on the module path (`--module-path` / `--add-modules javafx.controls,javafx.fxml`),
+same as for upstream MCA Selector. On macOS and Windows the jar runs as it is.
+
+Upstream's packaged installers are not built here: this fork ships the fat jar only, which is the
+same jar upstream's own `build/libs` contains.
+
 ## Version scheme
 
 ```
@@ -76,13 +91,89 @@ enough for development builds.
 1. sync with upstream (`scripts/sync-upstream.sh`),
 2. bump `plus.version` when the extension layer changed,
 3. `./gradlew test shadowJar`,
-4. tag `plus-<core>-<plus>`, e.g. `plus-2.9-1.0`,
-5. attach `build/libs/mca-selector-plus-*-all.jar` to the release.
+4. tag `plus-<core>-<plus>`, e.g. `plus-2.9-1.0`, and push the tag:
+
+   ```bash
+   git tag plus-2.9-1.0 && git push origin plus-2.9-1.0
+   ```
+
+`.github/workflows/release-plus.yml` picks the tag up, builds the fat jar and publishes the release
+with that jar and the version read back from its manifest, so the tag, the release title and the
+`Application-Version` / `Plus-Version` entries can never drift apart. Upstream's installer workflow
+only runs for releases on `master`, so nothing else is triggered.
+
+Current release: **plus-2.9-1.0** — `mca-selector-plus-2.9-plus-1.0-all.jar`.
 
 ## What the Plus layer adds
 
-See [README-NBT-STUDIO.md](README-NBT-STUDIO.md) for the feature description, the keyboard shortcuts
-and the file formats that are searched.
+Everything upstream does — map rendering, selections, import/export, delete, crop, chunk and NBT
+editing — still works exactly as before. The Plus layer adds a second way to work on NBT data: a
+NBT Studio style engine that treats a whole world as one searchable tag tree, available both in the
+GUI and on the command line.
+
+### 1. World-wide NBT search
+
+Find tags by name, by value, by both, by regular expression, or by wildcard, across
+
+* region, poi and entities files of every dimension,
+* and — when the option is on — every world data file: `level.dat`, `data/`, `playerdata/`,
+  `structures/` and the per-dimension copies of those directories,
+* restricted to a subtree (`path=sections[*].palette`) or to a tag type (`type=numeric`).
+
+A match is reported per chunk (any tag inside the chunk hits) or per file for the world data files.
+Matching chunks become a normal map selection, so the result can be fed into every existing upstream
+operation, and the same window lists every hit with its path, so a double click opens that chunk in
+the editor.
+
+### 2. World-wide NBT replace
+
+The same query language drives a replacer that rewrites name, value or both, supports regular
+expressions with capture groups (`minecraft:diamond_block` → `mca:diamond` via `$1`), and runs over
+a selection or over the entire world. A confirmation dialog shows how many chunks and files are
+about to be modified before anything is written.
+
+### 3. Direct editing of the tag tree
+
+The chunk editor and the new data file editor share one options bar: delete the selected tag, or
+insert any of the twelve `Tag.Type` variants (`BYTE`, `SHORT`, `INT`, `LONG`, `FLOAT`, `DOUBLE`,
+`String`, `List`, `Compound`, `[B]`, `[I]`, `[L]`). Type buttons enable themselves according to the
+selected parent node, so no query string is needed for small edits.
+
+### 4. Data file editor
+
+`level.dat`, `data/`, `playerdata/`, `structures/` and the per-dimension equivalents can be opened
+in a tabbed editor with the same tree and the same add/remove/edit operations as the chunk editor,
+without going through a search first.
+
+### 5. NBT file browser
+
+`Tools → Browse NBT files…` lists every editable file of the loaded world grouped by directory.
+Double click opens it in the editor. This is the entry point for "I know the file, just let me edit
+it", independent of the search window.
+
+### 6. First-class in filters and CLI
+
+The search is exposed as the `NBT` filter type and the replace as the `NbtReplace` field type, so
+both work wherever upstream filters and fields work:
+
+```bash
+# which chunks contain minecraft:stone (writes a selection csv)
+java -jar mca-selector-plus-2.9-plus-1.0-all.jar --mode select \
+  -w /path/to/world --query 'NBT contains "value=minecraft:stone"' -o stone.csv
+
+# rewrite the whole world
+java -jar mca-selector-plus-2.9-plus-1.0-all.jar --mode change \
+  -w /path/to/world --fields 'NbtReplace="value=minecraft:stone mode=exact => minecraft:dirt"'
+```
+
+### 7. Version display
+
+Window title, about dialog and jar manifest show `MCA Selector <core> - Plus <plus>`, so a bug
+report always tells which core and which extension layer produced it. New UI strings are translated
+in all 19 bundled languages.
+
+The full reference — query keys, matching modes, GUI walkthrough, CLI examples and the list of
+supported files — is in [README-NBT-STUDIO.md](README-NBT-STUDIO.md) (Chinese).
 
 ## License
 
