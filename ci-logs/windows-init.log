@@ -16,7 +16,7 @@ plus.application.url=https://github.com/RunningVAN/mca-selector-plus
 plus.copyright=© 2018 - 2026 Querz, RunningVAN
 === build/jpackage ===
 total 0
-drwxr-xr-x 1 runneradmin 197121 0 Nov  6 13:52 MCA Selector
+drwxr-xr-x 1 runneradmin 197121 0 Nov  6 13:59 MCA Selector
 === run ===
 + gradlePropertiesFile=./gradle.properties
 + projectName=mcaselector
@@ -74,4 +74,13 @@ drwxr-xr-x 1 runneradmin 197121 0 Nov  6 13:52 MCA Selector
 + sed -i 's/${plusVersion}/1.0/g' ./build/inno/inno.iss
 + mkdir ./build/libs/all
 + cp ./build/libs/mcaselector-2.9-all.jar ./build/libs/all/mcaselector-2.9.jar
-cp: cannot stat './build/libs/mcaselector-2.9-all.jar': No such file or directory
+=== exit: 0 ===
+=== build/inno ===
+total 184
+-rw-r--r-- 1 runneradmin 197121   8576 Nov  6 13:59 LICENSE
+drwxr-xr-x 1 runneradmin 197121      0 Nov  6 13:59 Languages
+drwxr-xr-x 1 runneradmin 197121      0 Nov  6 13:59 MCA Selector
+-rw-r--r-- 1 runneradmin 197121   1406 Nov  6 13:59 icon.ico
+-rw-r--r-- 1 runneradmin 197121   2852 Nov  6 13:59 inno.iss
+-rw-r--r-- 1 runneradmin 197121 154542 Nov  6 13:59 large.bmp
+-rw-r--r-- 1 runneradmin 197121   9294 Nov  6 13:59 small.bmp
