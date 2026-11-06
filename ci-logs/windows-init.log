@@ -16,7 +16,7 @@ plus.application.url=https://github.com/RunningVAN/mca-selector-plus
 plus.copyright=© 2018 - 2026 Querz, RunningVAN
 === build/jpackage ===
 total 0
-drwxr-xr-x 1 runneradmin 197121 0 Nov  6 14:05 MCA Selector
+drwxr-xr-x 1 runneradmin 197121 0 Nov  6 14:12 MCA Selector
 === run ===
 + gradlePropertiesFile=./gradle.properties
 + projectName=mcaselector
@@ -77,10 +77,10 @@ drwxr-xr-x 1 runneradmin 197121 0 Nov  6 14:05 MCA Selector
 === exit: 0 ===
 === build/inno ===
 total 184
--rw-r--r-- 1 runneradmin 197121   8576 Nov  6 14:05 LICENSE
-drwxr-xr-x 1 runneradmin 197121      0 Nov  6 14:05 Languages
-drwxr-xr-x 1 runneradmin 197121      0 Nov  6 14:05 MCA Selector
--rw-r--r-- 1 runneradmin 197121   1406 Nov  6 14:05 icon.ico
--rw-r--r-- 1 runneradmin 197121   2852 Nov  6 14:05 inno.iss
--rw-r--r-- 1 runneradmin 197121 154542 Nov  6 14:05 large.bmp
--rw-r--r-- 1 runneradmin 197121   9294 Nov  6 14:05 small.bmp
+-rw-r--r-- 1 runneradmin 197121   8576 Nov  6 14:12 LICENSE
+drwxr-xr-x 1 runneradmin 197121      0 Nov  6 14:12 Languages
+drwxr-xr-x 1 runneradmin 197121      0 Nov  6 14:12 MCA Selector
+-rw-r--r-- 1 runneradmin 197121   1406 Nov  6 14:12 icon.ico
+-rw-r--r-- 1 runneradmin 197121   2852 Nov  6 14:12 inno.iss
+-rw-r--r-- 1 runneradmin 197121 154542 Nov  6 14:12 large.bmp
+-rw-r--r-- 1 runneradmin 197121   9294 Nov  6 14:12 small.bmp
