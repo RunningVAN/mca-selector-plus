@@ -1,5 +1,6 @@
 [Setup]
-AppId={{C6145D1F-C820-492A-A649-F4D4C063EECB}
+; Plus layer uses its own AppId so it installs side by side with upstream MCA Selector
+AppId={{8F3B2C41-7D95-4E6A-9B12-5C0D8E7A3F56}
 AppName=${applicationName}
 AppVersion=${applicationVersion}
 ;AppVerName=${applicationName} ${applicationVersion}
@@ -13,7 +14,7 @@ DisableProgramGroupPage=yes
 LicenseFile=LICENSE
 PrivilegesRequired=lowest
 PrivilegesRequiredOverridesAllowed=dialog
-OutputBaseFilename=mcaselector-${applicationVersion}-setup
+OutputBaseFilename=mca-selector-plus-${applicationVersion}-plus-${plusVersion}-setup
 SetupIconFile=icon.ico
 Compression=lzma
 SolidCompression=yes

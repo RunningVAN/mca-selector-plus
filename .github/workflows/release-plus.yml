@@ -2,9 +2,16 @@ name: release plus
 
 # Publishes a Plus release for every tag of the form plus-<core>-<plus>, e.g. plus-2.9-1.0.
 #
-# Upstream's own release.yml only runs for releases on the master branch, so it stays silent for
-# these tags and the packaged installers are never built here: this repository ships the fat jar,
-# which is the artefact the README points at.
+# Upstream's own release.yml only runs for releases published from the master branch, so it stays
+# silent for these tags. This workflow therefore mirrors upstream's packaging jobs (jpackage +
+# Inno Setup) itself and ships exactly the same set of artefacts:
+#
+#   windows  mca-selector-plus-<core>-plus-<plus>-setup.exe
+#   macOS    mca-selector-plus-<core>-plus-<plus>-aarch64.dmg / -x64.dmg
+#   linux    mca-selector-plus-<core>-plus-<plus>-x64.deb   / -aarch64.deb
+#            mca-selector-plus-<core>-plus-<plus>-x64.rpm   / -aarch64.rpm
+#   jar      mca-selector-plus-<core>-plus-<plus>-all.jar   (fat, needs JDK 21 + JavaFX)
+#            mca-selector-plus-<core>-plus-<plus>.jar       (min, needs the jpackage lib/ folder)
 
 on:
   push:
@@ -16,7 +23,26 @@ permissions:
   contents: write
 
 jobs:
-  release:
+  meta:
+    runs-on: ubuntu-latest
+    outputs:
+      core: ${{ steps.v.outputs.core }}
+      plus: ${{ steps.v.outputs.plus }}
+      base: ${{ steps.v.outputs.base }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: read the versions
+        id: v
+        run: |
+          core=$(grep -E '^version=' gradle.properties | head -1 | cut -d= -f2 | tr -d '\r ')
+          plus=$(grep -E '^plus\.version=' gradle.properties | head -1 | cut -d= -f2 | tr -d '\r ')
+          echo "core=$core" >> "$GITHUB_OUTPUT"
+          echo "plus=$plus" >> "$GITHUB_OUTPUT"
+          echo "base=mca-selector-plus-$core-plus-$plus" >> "$GITHUB_OUTPUT"
+
+  jars:
+    needs: meta
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,36 +50,223 @@ jobs:
       - name: set up jdk 21
         uses: actions/setup-java@v4
         with:
-          distribution: temurin
+          distribution: zulu
           java-version: '21'
+          java-package: jdk+fx
 
       - name: set up gradle
         uses: gradle/actions/setup-gradle@v4
 
-      - name: build the fat jar
-        run: ./gradlew --no-daemon shadowJar
+      - name: build the jars
+        run: ./gradlew --no-daemon build shadowJar
 
-      - name: read the versions out of the jar
-        id: versions
+      - name: check the versions inside the fat jar
+        run: unzip -p build/libs/*-all.jar META-INF/MANIFEST.MF | grep -E 'Application-Version|Plus-Version'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jar
+          path: build/libs/*.jar
+          if-no-files-found: error
+
+  windows:
+    needs: meta
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: set up jdk 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '21'
+          java-package: jdk+fx
+          architecture: x64
+
+      - name: build the jpackage image
+        shell: bash
+        run: ./gradlew build shadowJar jpackage --stacktrace --warning-mode all
+
+      - name: initialise the installer resources
+        shell: bash
+        run: ./installer/windows/init .
+
+      - name: fetch the unofficial chinese language files
+        shell: pwsh
         run: |
-          JAR=$(ls build/libs/*-plus-*-all.jar | head -1)
-          echo "jar=$JAR" >> "$GITHUB_OUTPUT"
-          unzip -p "$JAR" META-INF/MANIFEST.MF | grep -E 'Application-Version|Plus-Version' || true
-          echo "shown=$(unzip -p "$JAR" META-INF/MANIFEST.MF | grep -E '^Application-Version' | cut -d' ' -f2- | tr -d '\r')" >> "$GITHUB_OUTPUT"
-          echo "plus=$(unzip -p "$JAR" META-INF/MANIFEST.MF | grep -E '^Plus-Version' | cut -d' ' -f2- | tr -d '\r')" >> "$GITHUB_OUTPUT"
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          $ver = (Get-Item $iscc).VersionInfo.ProductVersion
+          $tag = "is-" + (($ver.Split('.')[0..2]) -join '_')
+          Write-Host "iscc $ver, language files from issrc tag $tag"
+          $dir = "build\inno\Languages\Unofficial"
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          foreach ($lang in 'ChineseSimplified', 'ChineseTraditional') {
+            $url = "https://raw.githubusercontent.com/jrsoftware/issrc/$tag/Files/Languages/$lang.isl"
+            try {
+              Invoke-WebRequest -Uri $url -OutFile "$dir\$lang.isl" -UseBasicParsing -ErrorAction Stop
+              Write-Host "fetched $lang.isl"
+            } catch {
+              # the tag for this exact iscc build may not be published yet: drop the two
+              # unofficial entries instead of failing the whole installer build
+              Write-Warning "could not fetch $lang.isl from $url, removing the entry from inno.iss"
+              (Get-Content build\inno\inno.iss) | Where-Object { $_ -notmatch [regex]::Escape("Unofficial\$lang") } | Set-Content build\inno\inno.iss
+            }
+          }
+
+      - name: build the installer
+        shell: cmd
+        run: '"%programfiles(x86)%/Inno Setup 6/iscc.exe" build/inno/inno.iss /q'
+
+      - name: list the output
+        shell: bash
+        run: ls -l build/inno/Output/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-exe
+          path: build/inno/Output/*.exe
+          if-no-files-found: error
+
+  macos:
+    needs: meta
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-latest
+            arch: aarch64
+          - runner: macos-26-intel
+            arch: x64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: set up jdk 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '21'
+          java-package: jdk+fx
+          architecture: ${{ matrix.arch }}
+
+      - name: build the dmg
+        run: |
+          chmod +x ./gradlew ./installer/init
+          ./gradlew build shadowJar --stacktrace --warning-mode all
+          mkdir -p build/licenses
+          ./installer/init . build/licenses/LICENSE
+          ./gradlew jpackage --stacktrace --warning-mode all
+          ls -l build/jpackage/
+
+      - name: rename the dmg
+        run: |
+          cd build/jpackage
+          mv ./*.dmg "${{ needs.meta.outputs.base }}-${{ matrix.arch }}.dmg"
+          ls -l
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg-${{ matrix.arch }}
+          path: build/jpackage/*.dmg
+          if-no-files-found: error
+
+  linux:
+    needs: meta
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.image }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            arch: x64
+            type: deb
+            image: debian:bookworm
+          - os: ubuntu-22.04-arm
+            arch: aarch64
+            type: deb
+            image: debian:bookworm
+          - os: ubuntu-22.04
+            arch: x64
+            type: rpm
+            image: fedora:latest
+          - os: ubuntu-22.04-arm
+            arch: aarch64
+            type: rpm
+            image: fedora:latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: install the packaging tools (deb)
+        if: matrix.type == 'deb'
+        run: |
+          apt-get update -qq
+          apt-get install -qq -y ca-certificates findutils binutils fakeroot debhelper
+
+      - name: install the packaging tools (rpm)
+        if: matrix.type == 'rpm'
+        run: |
+          dnf install -y findutils tar gzip binutils rpm-build
+
+      - name: set up jdk 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: '21'
+          java-package: jdk+fx
+          architecture: ${{ matrix.arch }}
+
+      - name: build the installer
+        run: |
+          chmod +x ./gradlew ./installer/init
+          ./gradlew build shadowJar --stacktrace --warning-mode all
+          mkdir -p build/licenses
+          ./installer/init . build/licenses/LICENSE
+          ./gradlew jpackage -PmatrixType=${{ matrix.type }} --stacktrace --warning-mode all
+          mv build/jpackage/*.${{ matrix.type }} "${{ needs.meta.outputs.base }}-${{ matrix.arch }}.${{ matrix.type }}"
+          ls -l build/jpackage/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.type }}-${{ matrix.arch }}
+          path: build/jpackage/*.${{ matrix.type }}
+          if-no-files-found: error
+
+  publish:
+    needs: [meta, jars, windows, macos, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: list the release assets
+        run: ls -l dist
 
       - name: publish the release
         uses: softprops/action-gh-release@v2
         with:
-          name: MCA Selector ${{ steps.versions.outputs.shown }} - Plus ${{ steps.versions.outputs.plus }}
+          tag_name: plus-${{ needs.meta.outputs.core }}-${{ needs.meta.outputs.plus }}
+          name: MCA Selector ${{ needs.meta.outputs.core }} - Plus ${{ needs.meta.outputs.plus }}
+          make_latest: true
+          fail_on_unmatched_files: true
+          files: dist/*
           body: |
-            MCA Selector **${{ steps.versions.outputs.shown }}** with the Plus layer **${{ steps.versions.outputs.plus }}**.
+            MCA Selector **${{ needs.meta.outputs.core }}** with the Plus layer **${{ needs.meta.outputs.plus }}**.
 
             Everything upstream does is unchanged; the Plus layer adds world-wide NBT search and
             replace, a data file editor and an NBT file browser. Details, download instructions and
             the build are in [README-PLUS.md](https://github.com/RunningVAN/mca-selector-plus/blob/plus/README-PLUS.md),
             the query syntax and CLI reference in [README-NBT-STUDIO.md](https://github.com/RunningVAN/mca-selector-plus/blob/plus/README-NBT-STUDIO.md).
 
-            Requires JDK 21: `java -jar mca-selector-plus-${{ steps.versions.outputs.shown }}-plus-${{ steps.versions.outputs.plus }}-all.jar`
-          files: build/libs/*-plus-*-all.jar
-          fail_on_unmatched_files: true
+            ### Downloads
+
+            | platform | file | notes |
+            | --- | --- | --- |
+            | Windows | `${{ needs.meta.outputs.base }}-setup.exe` | installer, bundled JRE, no Java needed |
+            | macOS (Apple silicon) | `${{ needs.meta.outputs.base }}-aarch64.dmg` | bundled JRE |
+            | macOS (Intel) | `${{ needs.meta.outputs.base }}-x64.dmg` | bundled JRE |
+            | Linux (Debian/Ubuntu) | `${{ needs.meta.outputs.base }}-x64.deb`, `-aarch64.deb` | bundled JRE |
+            | Linux (Fedora/RHEL) | `${{ needs.meta.outputs.base }}-x64.rpm`, `-aarch64.rpm` | bundled JRE |
+            | any platform | `${{ needs.meta.outputs.base }}-all.jar` | needs JDK 21 with JavaFX |

@@ -24,6 +24,8 @@ var matrixType = project.findProperty("matrixType").toString()
 var projectName = project.name
 var projectVersion = project.version
 var plusVersion = project.findProperty('plus.version').toString()
+// the plus layer registers its own bundle id so it can live next to an installed upstream MCA Selector
+var macPackageIdentifier = 'net.querz.mcaselector.plus'
 
 javafx {
 	version = "$java.sourceCompatibility"
@@ -158,15 +160,19 @@ runtime {
 			installerName = applicationName
 			imageOptions = [
 				'--icon', 'installer/macos/icon.icns',
-				'--copyright', copyright
+				'--copyright', copyright,
+				'--mac-package-identifier', macPackageIdentifier
 			]
 			installerOptions = [
 				'--icon', 'installer/macos/icon.icns',
 				'--copyright', copyright,
+				'--mac-package-identifier', macPackageIdentifier,
 				'--license-file', 'build/licenses/LICENSE'
 			]
 		} else if (OperatingSystem.current().isLinux()) {
 			installerType = matrixType ?: "deb"
+			imageName = projectName
+			installerName = projectName
 			imageOptions = [
 				'--icon', 'installer/linux/icon.png',
 				'--copyright', copyright,
