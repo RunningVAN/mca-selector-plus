@@ -1,0 +1,77 @@
+=== file ===
+installer/windows/init: Bourne-Again shell script, ASCII text executable
+0000000   #   !   /   u   s   r   /   b   i   n   /   e   n   v       b
+0000020   a   s   h  \n
+=== gradle.properties ===
+# --- upstream values, mirrored from Querz/mcaselector: do not edit here, they are replaced on every sync ---
+version=2.9
+application.name=MCA Selector
+application.url=https://github.com/Querz/mcaselector
+application.author=Querz
+application.copyright=© 2018 - 2026 Querz
+# --- Plus layer, owned by this repository. The shown version is "MCA Selector <version> - Plus <plus.version>" ---
+plus.version=1.0
+plus.application.name=MCA Selector Plus
+plus.application.url=https://github.com/RunningVAN/mca-selector-plus
+plus.copyright=© 2018 - 2026 Querz, RunningVAN
+=== build/jpackage ===
+total 0
+drwxr-xr-x 1 runneradmin 197121 0 Nov  6 13:52 MCA Selector
+=== run ===
++ gradlePropertiesFile=./gradle.properties
++ projectName=mcaselector
+++ ReadGradleProperty application.name
++++ grep -m 1 '^application.name=' ./gradle.properties
++++ cut -d= -f2-
+++ local 'value=MCA Selector'
+++ echo 'MCA Selector'
++ applicationName='MCA Selector'
+++ ReadGradleProperty application.url
++++ grep -m 1 '^application.url=' ./gradle.properties
++++ cut -d= -f2-
+++ local value=https://github.com/Querz/mcaselector
+++ echo https://github.com/Querz/mcaselector
++ applicationURL=https://github.com/Querz/mcaselector
+++ ReadGradleProperty application.author
++++ grep -m 1 '^application.author=' ./gradle.properties
++++ cut -d= -f2-
+++ local value=Querz
+++ echo Querz
++ applicationAuthor=Querz
+++ ReadGradleProperty application.copyright
++++ grep -m 1 '^application.copyright=' ./gradle.properties
++++ cut -d= -f2-
+++ local $'value=\251 2018 - 2026 Querz'
+++ echo $'\251 2018 - 2026 Querz'
++ applicationCopyright=$'\251 2018 - 2026 Querz'
+++ ReadGradleProperty version
++++ grep -m 1 '^version=' ./gradle.properties
++++ cut -d= -f2-
+++ local value=2.9
+++ echo 2.9
++ applicationVersion=2.9
+++ ReadGradleProperty plus.version
++++ grep -m 1 '^plus.version=' ./gradle.properties
++++ cut -d= -f2-
+++ local value=1.0
+++ echo 1.0
++ plusVersion=1.0
++ Installer .
++ mkdir ./build/inno
++ ./installer/init . ./build/inno/LICENSE
++ local innoSetupDir=./build/inno
++ cp ./installer/windows/icon.ico ./build/inno
++ cp ./installer/windows/small.bmp ./build/inno
++ cp ./installer/windows/large.bmp ./build/inno
++ cp -r './build/jpackage/MCA Selector' ./build/inno
++ cp ./installer/windows/inno.iss ./build/inno
++ cp -r ./installer/windows/Languages ./build/inno
++ sed -i 's/${applicationName}/MCA Selector/g' ./build/inno/inno.iss
++ sed -i 's/${applicationUrl}/https:\/\/github.com\/Querz\/mcaselector/g' ./build/inno/inno.iss
++ sed -i 's/${applicationAuthor}/Querz/g' ./build/inno/inno.iss
++ sed -i $'s/${applicationCopyright}/\251 2018 - 2026 Querz/g' ./build/inno/inno.iss
++ sed -i 's/${applicationVersion}/2.9/g' ./build/inno/inno.iss
++ sed -i 's/${plusVersion}/1.0/g' ./build/inno/inno.iss
++ mkdir ./build/libs/all
++ cp ./build/libs/mcaselector-2.9-all.jar ./build/libs/all/mcaselector-2.9.jar
+cp: cannot stat './build/libs/mcaselector-2.9-all.jar': No such file or directory
