@@ -11,7 +11,24 @@ without manual porting.
 
 ## Download and run
 
-Grab `mca-selector-plus-<core>-plus-<plus>-all.jar` from the
+Every release ships the same set of artefacts upstream ships, built by the same jpackage + Inno Setup
+pipeline, with a bundled JRE so no Java installation is needed:
+
+| platform | file |
+| --- | --- |
+| Windows | `mca-selector-plus-<core>-plus-<plus>-setup.exe` |
+| macOS, Apple silicon | `mca-selector-plus-<core>-plus-<plus>-aarch64.dmg` |
+| macOS, Intel | `mca-selector-plus-<core>-plus-<plus>-x64.dmg` |
+| Linux, Debian/Ubuntu x64 | `mca-selector-plus-<core>-plus-<plus>-x64.deb` |
+| Linux, Debian/Ubuntu arm64 | `mca-selector-plus-<core>-plus-<plus>-aarch64.deb` |
+| Linux, Fedora/RHEL x64 | `mca-selector-plus-<core>-plus-<plus>-x64.rpm` |
+| Linux, Fedora/RHEL arm64 | `mca-selector-plus-<core>-plus-<plus>-aarch64.rpm` |
+
+The Windows installer uses its own `AppId`, and the macOS bundle its own identifier
+(`net.querz.mcaselector.plus`), so MCA Selector Plus can be installed next to an upstream MCA Selector
+without either one overwriting the other.
+
+If you prefer a jar, grab `mca-selector-plus-<core>-plus-<plus>-all.jar` from the same
 [releases page](https://github.com/RunningVAN/mca-selector-plus/releases) and run it with JDK 21:
 
 ```bash
@@ -20,9 +37,6 @@ java -jar mca-selector-plus-2.9-plus-1.0-all.jar
 
 On Linux, JavaFX has to be on the module path (`--module-path` / `--add-modules javafx.controls,javafx.fxml`),
 same as for upstream MCA Selector. On macOS and Windows the jar runs as it is.
-
-Upstream's packaged installers are not built here: this fork ships the fat jar only, which is the
-same jar upstream's own `build/libs` contains.
 
 ## Version scheme
 
@@ -97,12 +111,16 @@ enough for development builds.
    git tag plus-2.9-1.0 && git push origin plus-2.9-1.0
    ```
 
-`.github/workflows/release-plus.yml` picks the tag up, builds the fat jar and publishes the release
-with that jar and the version read back from its manifest, so the tag, the release title and the
-`Application-Version` / `Plus-Version` entries can never drift apart. Upstream's installer workflow
-only runs for releases on `master`, so nothing else is triggered.
+`.github/workflows/release-plus.yml` picks the tag up and runs the same packaging jobs upstream runs:
+the Inno Setup installer on `windows-latest`, the dmg on `macos-latest` (aarch64) and `macos-26-intel`
+(x64), the deb and rpm in `debian:bookworm` / `fedora:latest` containers for both architectures, and
+the fat jar on Ubuntu. All artefacts are published in one release, with the versions read from
+`gradle.properties` so the tag, the release title, the installer names and the `Application-Version` /
+`Plus-Version` manifest entries can never drift apart. Upstream's own installer workflow only runs for
+releases published from `master`, so the two never collide.
 
-Current release: **plus-2.9-1.0** — `mca-selector-plus-2.9-plus-1.0-all.jar`.
+Current release: **plus-2.9-1.0** — `-setup.exe`, `-aarch64.dmg`, `-x64.dmg`, `-x64.deb`,
+`-aarch64.deb`, `-x64.rpm`, `-aarch64.rpm` and `-all.jar`.
 
 ## What the Plus layer adds
 
