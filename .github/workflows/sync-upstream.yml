@@ -42,7 +42,9 @@ jobs:
       - name: fast-forward the core branch
         id: core
         run: |
-          git checkout master
+          # a fork tracks upstream/master and origin/master at once, a bare "git checkout master"
+          # aborts with "matched multiple remote tracking branches", so pin the branch to upstream
+          git checkout -B master upstream/master
           before=$(git rev-parse master)
           git merge --ff-only upstream/master
           if [ "$before" = "$(git rev-parse master)" ]; then
@@ -56,7 +58,7 @@ jobs:
       - name: rebase the plus layer onto the new core
         id: rebase
         run: |
-          git checkout plus
+          git checkout -B plus origin/plus
           if git rebase master; then
             echo "conflict=false" >> "$GITHUB_OUTPUT"
             git push --force-with-lease origin plus
