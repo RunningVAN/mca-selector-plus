@@ -51,7 +51,7 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
             git push origin master
           fi
-          echo "version=$(sed -n 's/^version=//p' gradle.properties | head -1)" >> "$GITHUB_OUTPUT"
+          echo "version=$(grep -m1 '^version=' gradle.properties | cut -d= -f2-)" >> "$GITHUB_OUTPUT"
 
       - name: rebase the plus layer onto the new core
         id: rebase

@@ -45,8 +45,9 @@ if ! git rebase "$CORE_BRANCH"; then
 	exit 1
 fi
 
-CORE_VERSION=$(sed -n 's/^version=//p' gradle.properties | head -1)
-PLUS_VERSION=$(sed -n 's/^plus.version=//p' gradle.properties | head -1)
+# grep instead of sed: the file carries a © in the copyright line and BSD sed chokes on it
+CORE_VERSION=$(grep -m1 '^version=' gradle.properties | cut -d= -f2- | tr -d '\r')
+PLUS_VERSION=$(grep -m1 '^plus.version=' gradle.properties | cut -d= -f2- | tr -d '\r')
 
 echo
 echo "core version (from upstream): $CORE_VERSION"
